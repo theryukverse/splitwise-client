@@ -5,7 +5,6 @@
 // ─── State ────────────────────────────────
 let state = {
   apiKey: localStorage.getItem('sw_api_key') || '',
-  serverUrl: localStorage.getItem('sw_server_url') || '',
   currentUser: null,
   friends: [],
   groups: [],
@@ -23,7 +22,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Auto-connect if API key is saved
   if (state.apiKey) {
     document.getElementById('api-key').value = state.apiKey;
-    document.getElementById('server-url').value = state.serverUrl || '';
     connect();
   }
 
@@ -35,42 +33,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ─── API Helpers ──────────────────────────
 async function api(endpoint, options = {}) {
-  // If a custom server URL is provided, try to use it.
-  // Otherwise, default to relative '/api/' (for locals), or fallback to direct connection (which fails CORS but is the old default)
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname.startsWith('192.168.');
-  
-  let url;
-  const headers = { ...options.headers };
-
-  if (state.serverUrl && !isLocal) {
-    // We are on a phone (GitHub pages) pointing to a desktop (state.serverUrl)
-    // Trim trailing slash
-    const base = state.serverUrl.endsWith('/') ? state.serverUrl.slice(0, -1) : state.serverUrl;
-    url = `${base}/api/${endpoint}`;
-    headers['X-API-Key'] = state.apiKey;
-    headers['Content-Type'] = 'application/json';
-  } else if (isLocal) {
-    url = `/api/${endpoint}`;
-    headers['X-API-Key'] = state.apiKey;
-    headers['Content-Type'] = 'application/json';
-  } else {
-    // Map internal endpoints to actual Splitwise endpoints
-    const endpointMap = {
-      'current-user': 'get_current_user',
-      'friends': 'get_friends',
-      'groups': 'get_groups',
-      'currencies': 'get_currencies',
-      'categories': 'get_categories',
-      'create-expense': 'create_expense'
-    };
-    url = `https://secure.splitwise.com/api/v3.0/${endpointMap[endpoint] || endpoint}`;
-    headers['Authorization'] = `Bearer ${state.apiKey}`;
-    
-    // Splitwise can sometimes fail GET requests if Content-Type is set (CORS preflight trigger)
-    if (options.method === 'POST') {
-      headers['Content-Type'] = 'application/json';
-    }
-  }
+  const url = `/api/${endpoint}`;
+  const headers = {
+    'X-API-Key': state.apiKey,
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
 
   const res = await fetch(url, { ...options, headers });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -80,11 +48,9 @@ async function api(endpoint, options = {}) {
 // ─── Connect ──────────────────────────────
 async function connect() {
   const keyInput = document.getElementById('api-key');
-  const serverInput = document.getElementById('server-url');
   const btn = document.getElementById('btn-connect');
 
   state.apiKey = keyInput.value.trim();
-  state.serverUrl = serverInput.value.trim();
   
   if (!state.apiKey) {
     shakeInput(keyInput);
@@ -132,12 +98,9 @@ async function connect() {
 // ─── Logout ───────────────────────────────
 function logout() {
   localStorage.removeItem('sw_api_key');
-  localStorage.removeItem('sw_server_url');
   state.apiKey = '';
-  state.serverUrl = '';
   state.currentUser = null;
   document.getElementById('api-key').value = '';
-  document.getElementById('server-url').value = '';
   showScreen('screen-setup');
 }
 
