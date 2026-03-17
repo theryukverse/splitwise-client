@@ -2,46 +2,40 @@
 
 A lightweight, mobile-friendly PWA client for Splitwise designed for lightning-fast expense creation. Supports offline caching, multiple split options (Equal, Exact, Percent, Shares, Adjustments), and quick data entry.
 
-## 🚀 Getting Started (Local Development)
+## 🚀 Live App
 
-This app uses a simple Express server to proxy requests to the Splitwise API. This completely bypasses any CORS (Cross-Origin Resource Sharing) restrictions enforced by Splitwise.
+The app is deployed and ready to use on your phone or desktop:
+👉 **[https://splitwise-ryuk.vercel.app](https://splitwise-ryuk.vercel.app/)**
 
-### Prerequisites
-- [Node.js](https://nodejs.org/) installed on your machine.
-- Your Splitwise API Key (get it from [secure.splitwise.com/apps](https://secure.splitwise.com/apps)).
+### How to Use
+1. Get your **Splitwise API Key** from [secure.splitwise.com/apps](https://secure.splitwise.com/apps).
+2. Go to the live app link and enter your API Key.
+3. Your key is securely stored in your browser's local storage and is only used to communicate with the Splitwise API.
 
-### Installation
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-2. Start the server:
-   ```bash
-   npm start
-   ```
-3. Open your browser and go to `http://localhost:3000`. You can also access it on your phone if you are on the same WiFi network (the terminal will print the network URL).
+### Add to Home Screen (PWA)
+For the best experience on mobile:
+- **iOS (Safari):** Tap the Share button at the bottom, then scroll down and tap "Add to Home Screen".
+- **Android (Chrome):** Tap the 3-dot menu in the top right, then tap "Add to Home screen" or "Install app".
 
 ---
 
-## 🌐 Deploying to Vercel (For Full Mobile Access)
+## 💻 Local Development
 
-If you want to use this app anywhere on your phone (without your laptop running), the easiest and best free host is **Vercel**. 
+If you want to run the project locally or make modifications:
 
-Vercel natively supports running both the static frontend (the PWA) and the Node.js backend (`server.js`) together. The repository already contains the required `vercel.json` configuration file.
+### Prerequisites
+- [Node.js](https://nodejs.org/) installed on your machine.
 
-### Steps to Deploy
+### Installation
+1. Clone the repository to your machine.
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the local Express server:
+   ```bash
+   npm start
+   ```
+4. Open your browser and go to `http://localhost:3000`.
 
-1. **Push your code to GitHub:**
-   Make sure all your latest code is pushed to your GitHub repository.
-
-2. **Deploy on Vercel:**
-   - Go to [Vercel.com](https://vercel.com/) and sign up / log in with your GitHub account.
-   - Click **Add New** > **Project**.
-   - Select your `splitwise-client` GitHub repository and click **Import**.
-   - Leave all the default settings as they are and click **Deploy**.
-
-3. **Use the App!**
-   - Vercel will give you a live URL (e.g. `https://splitwise-client.vercel.app`).
-   - Open that link on your phone.
-   - Enter your Splitwise API Key.
-   - **Add to Home Screen:** Tap your browser's share button and select "Add to Home Screen" to install it as a fully native-feeling app!
+*Note: The local Express server is used to proxy requests to the Splitwise API to bypass browser CORS restrictions.*
