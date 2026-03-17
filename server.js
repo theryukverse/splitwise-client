@@ -8,7 +8,15 @@ const app = express();
 const PORT = 3000;
 const SPLITWISE_API = 'https://secure.splitwise.com/api/v3.0';
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://theryukverse.github.io' // Allow requests from the GitHub Pages PWA
+  ],
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'X-API-Key']
+}));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 

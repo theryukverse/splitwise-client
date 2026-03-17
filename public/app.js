@@ -5,6 +5,7 @@
 // ─── State ────────────────────────────────
 let state = {
   apiKey: localStorage.getItem('sw_api_key') || '',
+  serverUrl: localStorage.getItem('sw_server_url') || '',
   currentUser: null,
   friends: [],
   groups: [],
@@ -22,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Auto-connect if API key is saved
   if (state.apiKey) {
     document.getElementById('api-key').value = state.apiKey;
+    document.getElementById('server-url').value = state.serverUrl || '';
     connect();
   }
 
@@ -33,13 +35,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ─── API Helpers ──────────────────────────
 async function api(endpoint, options = {}) {
-  // Use proxy if local, else attempt direct connection (for GitHub Pages)
+  // If a custom server URL is provided, try to use it.
+  // Otherwise, default to relative '/api/' (for locals), or fallback to direct connection (which fails CORS but is the old default)
   const isLocal = window.location.hostname === 'localhost' || window.location.hostname.startsWith('192.168.');
   
   let url;
   const headers = { ...options.headers };
 
-  if (isLocal) {
+  if (state.serverUrl && !isLocal) {
+    // We are on a phone (GitHub pages) pointing to a desktop (state.serverUrl)
+    // Trim trailing slash
+    const base = state.serverUrl.endsWith('/') ? state.serverUrl.slice(0, -1) : state.serverUrl;
+    url = `${base}/api/${endpoint}`;
+    headers['X-API-Key'] = state.apiKey;
+    headers['Content-Type'] = 'application/json';
+  } else if (isLocal) {
     url = `/api/${endpoint}`;
     headers['X-API-Key'] = state.apiKey;
     headers['Content-Type'] = 'application/json';
@@ -70,9 +80,12 @@ async function api(endpoint, options = {}) {
 // ─── Connect ──────────────────────────────
 async function connect() {
   const keyInput = document.getElementById('api-key');
+  const serverInput = document.getElementById('server-url');
   const btn = document.getElementById('btn-connect');
 
   state.apiKey = keyInput.value.trim();
+  state.serverUrl = serverInput.value.trim();
+  
   if (!state.apiKey) {
     shakeInput(keyInput);
     return;
@@ -99,8 +112,9 @@ async function connect() {
     state.currencies = currencyData.currencies || [];
     state.categories = categoryData.categories || [];
 
-    // Save API key
+    // Save API key & URL
     localStorage.setItem('sw_api_key', state.apiKey);
+    localStorage.setItem('sw_server_url', state.serverUrl);
 
     // Populate UI
     populateUI();
@@ -118,9 +132,12 @@ async function connect() {
 // ─── Logout ───────────────────────────────
 function logout() {
   localStorage.removeItem('sw_api_key');
+  localStorage.removeItem('sw_server_url');
   state.apiKey = '';
+  state.serverUrl = '';
   state.currentUser = null;
   document.getElementById('api-key').value = '';
+  document.getElementById('server-url').value = '';
   showScreen('screen-setup');
 }
 
