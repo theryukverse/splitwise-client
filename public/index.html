@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#5bc5a7">
+  <meta name="description" content="Quick expense creation for Splitwise">
+  <title>Splitwise Quick</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- ─── Setup Screen ─── -->
+    <div id="screen-setup" class="screen active">
+      <div class="setup-container">
+        <div class="logo-section">
+          <div class="logo-icon">
+            <svg viewBox="0 0 48 48" fill="none">
+              <rect width="48" height="48" rx="12" fill="url(#grad1)"/>
+              <path d="M14 24h20M24 14v20M18 18l12 12M30 18l-12 12" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.3"/>
+              <path d="M16 20h16M16 24h16M16 28h12" stroke="white" stroke-width="2" stroke-linecap="round"/>
+              <defs>
+                <linearGradient id="grad1" x1="0" y1="0" x2="48" y2="48">
+                  <stop stop-color="#5bc5a7"/>
+                  <stop offset="1" stop-color="#3a9d82"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h1>Splitwise Quick</h1>
+          <p class="subtitle">Create expenses in seconds</p>
+        </div>
+
+        <div class="card glass">
+          <label class="input-label" for="api-key">Splitwise API Key</label>
+          <input type="password" id="api-key" class="input" placeholder="Enter your API key" autocomplete="off">
+          <p class="hint">
+            Get your API key from
+            <a href="https://secure.splitwise.com/apps" target="_blank" rel="noopener">secure.splitwise.com/apps</a>
+          </p>
+          <button id="btn-connect" class="btn btn-primary" onclick="connect()">
+            <span class="btn-text">Connect</span>
+            <span class="btn-loader hidden">
+              <span class="spinner"></span>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Main Screen ─── -->
+    <div id="screen-main" class="screen">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <div class="avatar" id="user-avatar"></div>
+          <span class="header-title">New Expense</span>
+        </div>
+        <button class="btn-icon" onclick="logout()" title="Disconnect">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
+        </button>
+      </header>
+
+      <!-- Expense Form -->
+      <main class="main-content">
+        <form id="expense-form" onsubmit="createExpense(event)">
+
+          <!-- Description -->
+          <div class="form-group">
+            <label class="input-label" for="description">Description</label>
+            <input type="text" id="description" class="input" placeholder="e.g. Dinner, Uber, Groceries" required autocomplete="off">
+          </div>
+
+          <!-- Amount + Currency -->
+          <div class="form-row">
+            <div class="form-group flex-2">
+              <label class="input-label" for="amount">Amount</label>
+              <input type="number" id="amount" class="input input-amount" placeholder="0.00" step="0.01" min="0.01" required inputmode="decimal">
+            </div>
+            <div class="form-group flex-1">
+              <label class="input-label" for="currency">Currency</label>
+              <select id="currency" class="input select"></select>
+            </div>
+          </div>
+
+          <!-- Date -->
+          <div class="form-group">
+            <label class="input-label" for="date">Date</label>
+            <input type="date" id="date" class="input">
+          </div>
+
+          <!-- Category -->
+          <div class="form-group">
+            <label class="input-label" for="category">Category</label>
+            <select id="category" class="input select">
+              <option value="">General</option>
+            </select>
+          </div>
+
+          <!-- Group -->
+          <div class="form-group">
+            <label class="input-label" for="group">Group</label>
+            <select id="group" class="input select" onchange="onGroupChange()">
+              <option value="0">No group (individual)</option>
+            </select>
+          </div>
+
+          <!-- Split With -->
+          <div class="form-group">
+            <label class="input-label">Split with</label>
+            <div id="friends-list" class="friends-list">
+              <div class="empty-state">Connect to load friends</div>
+            </div>
+          </div>
+
+          <!-- Split Type -->
+          <div class="form-group">
+            <label class="input-label">Split type</label>
+            <div class="split-toggle">
+              <button type="button" class="split-btn active" data-type="equal" onclick="setSplitType('equal')">Equal</button>
+              <button type="button" class="split-btn" data-type="exact" onclick="setSplitType('exact')">Exact</button>
+              <button type="button" class="split-btn" data-type="percent" onclick="setSplitType('percent')">Percent</button>
+              <button type="button" class="split-btn" data-type="shares" onclick="setSplitType('shares')">Shares</button>
+              <button type="button" class="split-btn" data-type="adjustment" onclick="setSplitType('adjustment')">±Adjust</button>
+            </div>
+          </div>
+
+          <!-- Custom Split Inputs (shown for exact/percent) -->
+          <div id="custom-split" class="custom-split hidden"></div>
+
+          <!-- Paid by -->
+          <div class="form-group">
+            <label class="input-label" for="paid-by">Paid by</label>
+            <select id="paid-by" class="input select">
+              <option value="self">You</option>
+            </select>
+          </div>
+
+          <!-- Notes -->
+          <div class="form-group">
+            <label class="input-label" for="notes">Notes <span class="optional">(optional)</span></label>
+            <textarea id="notes" class="input textarea" placeholder="Add any notes..." rows="2"></textarea>
+          </div>
+
+          <!-- Submit -->
+          <button type="submit" id="btn-submit" class="btn btn-primary btn-lg">
+            <span class="btn-text">Create Expense</span>
+            <span class="btn-loader hidden">
+              <span class="spinner"></span>
+            </span>
+          </button>
+        </form>
+      </main>
+
+      <!-- Toast -->
+      <div id="toast" class="toast hidden"></div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
