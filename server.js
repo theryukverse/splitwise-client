@@ -109,6 +109,27 @@ app.get('/api/categories', async (req, res) => {
   }
 });
 
+// Get expenses (with query params: dated_after, dated_before, limit)
+app.get('/api/expenses', async (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey) return res.status(401).json({ error: 'API key required' });
+
+    const params = new URLSearchParams();
+    if (req.query.dated_after) params.append('dated_after', req.query.dated_after);
+    if (req.query.dated_before) params.append('dated_before', req.query.dated_before);
+    if (req.query.limit) params.append('limit', req.query.limit);
+
+    const response = await fetch(`${SPLITWISE_API}/get_expenses?${params}`, {
+      headers: apiHeaders(apiKey),
+    });
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Create expense
 app.post('/api/create-expense', async (req, res) => {
   try {

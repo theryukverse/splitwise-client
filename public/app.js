@@ -557,3 +557,215 @@ function resetForm() {
   // Scroll to top
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+// ─── Tab Navigation ───────────────────────
+function showTab(screenId) {
+  showScreen(screenId);
+
+  // Update all nav tabs across all screens
+  document.querySelectorAll('.nav-tab').forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.tab === screenId);
+  });
+
+  // Load usage data when switching to usage tab
+  if (screenId === 'screen-usage' && state.currentUser) {
+    // Set avatar on usage screen
+    const user = state.currentUser;
+    const avatar = document.getElementById('usage-user-avatar');
+    const initials = `${(user.first_name || '')[0] || ''}${(user.last_name || '')[0] || ''}`;
+    avatar.textContent = initials;
+
+    fetchUsageData();
+  }
+}
+
+// ─── Usage Report ─────────────────────────
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+const CATEGORY_COLORS = [
+  '#5bc5a7', '#f5576c', '#4facfe', '#fa709a', '#43e97b',
+  '#fccb90', '#a18cd1', '#667eea', '#f093fb', '#38f9d7',
+  '#fee140', '#d57eeb', '#8ec5fc', '#e0c3fc', '#00f2fe',
+];
+
+// Initialize month to current
+(function initUsageMonth() {
+  const now = new Date();
+  state.usageMonth = now.getMonth();
+  state.usageYear = now.getFullYear();
+})();
+
+function updateMonthLabel() {
+  document.getElementById('month-label').textContent =
+    `${MONTH_NAMES[state.usageMonth]} ${state.usageYear}`;
+}
+
+function prevMonth() {
+  state.usageMonth--;
+  if (state.usageMonth < 0) {
+    state.usageMonth = 11;
+    state.usageYear--;
+  }
+  updateMonthLabel();
+  fetchUsageData();
+}
+
+function nextMonth() {
+  state.usageMonth++;
+  if (state.usageMonth > 11) {
+    state.usageMonth = 0;
+    state.usageYear++;
+  }
+  updateMonthLabel();
+  fetchUsageData();
+}
+
+async function fetchUsageData() {
+  const container = document.getElementById('usage-report');
+  container.innerHTML = '<div class="usage-loading"><span class="spinner"></span></div>';
+
+  updateMonthLabel();
+
+  const year = state.usageYear;
+  const month = state.usageMonth;
+
+  // Date range: first day to last day of the month
+  const dateAfter = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const dateBefore = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+  try {
+    const data = await api(`expenses?dated_after=${dateAfter}&dated_before=${dateBefore}&limit=999`);
+    const expenses = data.expenses || [];
+    const report = aggregateByCategory(expenses);
+    renderUsageReport(report);
+  } catch (err) {
+    container.innerHTML = '<div class="empty-state">Failed to load expenses</div>';
+    console.error(err);
+  }
+}
+
+function aggregateByCategory(expenses) {
+  const userId = state.currentUser?.id;
+  const categoryMap = {};
+  let total = 0;
+  let currency = state.currentUser?.default_currency || 'INR';
+  let expenseCount = 0;
+
+  // Build a lookup from category ID -> name from state.categories
+  const catNameMap = {};
+  (state.categories || []).forEach((cat) => {
+    catNameMap[cat.id] = cat.name;
+    if (cat.subcategories) {
+      cat.subcategories.forEach((sub) => {
+        catNameMap[sub.id] = sub.name;
+      });
+    }
+  });
+
+  expenses.forEach((exp) => {
+    if (exp.deleted_at) return; // skip deleted
+    if (exp.payment === true) return; // skip payments/settlements
+
+    // Find user's owed share
+    const userShare = (exp.users || []).find((u) => u.user_id === userId || u.user?.id === userId);
+    if (!userShare) return;
+
+    const owed = parseFloat(userShare.owed_share || 0);
+    if (owed <= 0) return;
+
+    const catId = exp.category?.id || 0;
+    const catName = exp.category?.name || catNameMap[catId] || 'General';
+    currency = exp.currency_code || currency;
+
+    if (!categoryMap[catName]) {
+      categoryMap[catName] = { name: catName, amount: 0, count: 0 };
+    }
+    categoryMap[catName].amount += owed;
+    categoryMap[catName].count++;
+    total += owed;
+    expenseCount++;
+  });
+
+  // Sort by amount descending
+  const categories = Object.values(categoryMap).sort((a, b) => b.amount - a.amount);
+
+  return { total, currency, categories, expenseCount };
+}
+
+function renderUsageReport({ total, currency, categories, expenseCount }) {
+  const container = document.getElementById('usage-report');
+
+  if (expenseCount === 0) {
+    container.innerHTML = `
+      <div class="report-card glass">
+        <div class="report-empty">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-hint)" stroke-width="1.5" stroke-linecap="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M8 12h8M12 8v8"/>
+          </svg>
+          <p>No expenses this month</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const maxAmount = categories.length > 0 ? categories[0].amount : 1;
+
+  let barsHtml = categories.map((cat, i) => {
+    const pct = total > 0 ? ((cat.amount / total) * 100).toFixed(1) : 0;
+    const barWidth = ((cat.amount / maxAmount) * 100).toFixed(1);
+    const color = CATEGORY_COLORS[i % CATEGORY_COLORS.length];
+    return `
+      <div class="report-bar-row">
+        <div class="report-bar-label">
+          <span class="report-cat-dot" style="background:${color}"></span>
+          <span class="report-cat-name">${cat.name}</span>
+        </div>
+        <div class="report-bar-track">
+          <div class="report-bar-fill" style="width:0%;background:${color}" data-width="${barWidth}%"></div>
+        </div>
+        <div class="report-bar-value">
+          <span class="report-bar-amount">${cat.amount.toFixed(2)}</span>
+          <span class="report-bar-pct">${pct}%</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  let summaryHtml = `
+    <div class="report-summary-row">
+      <span class="report-summary-label">Total Expenses</span>
+      <span class="report-summary-count">${expenseCount}</span>
+    </div>
+  `;
+
+  container.innerHTML = `
+    <div class="report-card glass">
+      <div class="report-total-section">
+        <span class="report-total-label">Your Share</span>
+        <span class="report-total-amount">${currency} ${total.toFixed(2)}</span>
+      </div>
+      <div class="report-divider"></div>
+      <div class="report-bars">
+        ${barsHtml}
+      </div>
+      <div class="report-divider"></div>
+      ${summaryHtml}
+    </div>
+  `;
+
+  // Animate bars
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      container.querySelectorAll('.report-bar-fill').forEach((bar) => {
+        bar.style.width = bar.dataset.width;
+      });
+    }, 50);
+  });
+}
+
