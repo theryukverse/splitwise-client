@@ -33,10 +33,11 @@ html, body {
   font-family: var(--font);
   background: var(--bg);
   color: var(--text);
-  min-height: 100dvh;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
 }
 
 body::before {
@@ -55,13 +56,19 @@ body::before {
 #app {
   position: relative;
   z-index: 1;
+  height: 100%;
+  width: 100%;
 }
 
 /* ─── Screens ─── */
 
 .screen {
   display: none;
-  min-height: 100dvh;
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
 }
 
 .screen.active {
@@ -71,8 +78,8 @@ body::before {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* ─── Setup Screen ─── */
@@ -271,7 +278,7 @@ body::before {
   padding: 18px 24px;
   font-size: 16px;
   border-radius: var(--radius);
-  margin-bottom: calc(20px + var(--safe-bottom));
+  margin-bottom: 20px;
 }
 
 .btn-icon {
@@ -322,8 +329,10 @@ body::before {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
 }
 
@@ -358,10 +367,21 @@ body::before {
 
 .main-content {
   flex: 1;
+  min-height: 0;
   padding: 20px;
+  padding-top: calc(85px + env(safe-area-inset-top));
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
   max-width: 520px;
   margin: 0 auto;
   width: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+}
+
+.main-content::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
 }
 
 .form-group {
@@ -619,16 +639,18 @@ body::before {
 
 .bottom-nav {
   display: flex;
-  position: sticky;
+  position: fixed;
   bottom: 0;
-  background: rgba(10, 10, 15, 0.9);
+  left: 0;
+  right: 0;
+  background: rgba(10, 10, 15, 0.92);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--border);
   padding: 8px 0;
-  padding-bottom: calc(8px + var(--safe-bottom));
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
   z-index: 100;
-  margin-top: auto;
+  width: 100%;
 }
 
 .nav-tab {
@@ -867,6 +889,6 @@ body::before {
 
 @media (min-width: 768px) {
   .setup-container { padding: 48px 24px; }
-  .main-content { padding: 32px 24px; }
+  .main-content { padding: 32px 24px; padding-bottom: 24px; }
 }
 
