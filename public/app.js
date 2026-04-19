@@ -5,6 +5,8 @@
 // ─── State ────────────────────────────────
 let state = {
   apiKey: localStorage.getItem('sw_api_key') || '',
+  oauthToken: localStorage.getItem('sw_oauth_token') || '',
+  authMethod: localStorage.getItem('sw_auth_method') || '', // 'oauth' or 'apikey'
   currentUser: null,
   friends: [],
   groups: [],
@@ -15,14 +17,53 @@ let state = {
 };
 
 // ─── Init ─────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   // Set today's date
   document.getElementById('date').value = new Date().toISOString().split('T')[0];
 
-  // Auto-connect if API key is saved
-  if (state.apiKey) {
+  // Check for OAuth token in URL (callback redirect)
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
+  const oauthError = urlParams.get('oauth_error');
+
+  if (token) {
+    // Save OAuth token and clean URL
+    state.oauthToken = token;
+    state.authMethod = 'oauth';
+    localStorage.setItem('sw_oauth_token', token);
+    localStorage.setItem('sw_auth_method', 'oauth');
+    window.history.replaceState({}, document.title, '/');
+    connect();
+  } else if (oauthError) {
+    window.history.replaceState({}, document.title, '/');
+    showToast(`OAuth error: ${oauthError}`, 'error');
+  } else if (state.oauthToken && state.authMethod === 'oauth') {
+    // Auto-connect with saved OAuth token
+    connect();
+  } else if (state.apiKey) {
+    // Auto-connect with saved API key
     document.getElementById('api-key').value = state.apiKey;
     connect();
+  }
+
+  // Check if OAuth is available on the server
+  try {
+    const res = await fetch('/oauth/status');
+    const data = await res.json();
+    if (!data.enabled) {
+      // Hide OAuth UI if not configured on server
+      document.getElementById('oauth-section').classList.add('hidden');
+      document.getElementById('auth-divider').classList.add('hidden');
+      // Auto-expand API key section
+      const fields = document.getElementById('apikey-fields');
+      const btn = document.getElementById('btn-expand-apikey');
+      fields.classList.remove('collapsed');
+      btn.style.display = 'none';
+    }
+  } catch (e) {
+    // If server unreachable, hide OAuth
+    document.getElementById('oauth-section').classList.add('hidden');
+    document.getElementById('auth-divider').classList.add('hidden');
   }
 
   // Register service worker
@@ -35,10 +76,16 @@ document.addEventListener('DOMContentLoaded', () => {
 async function api(endpoint, options = {}) {
   const url = `/api/${endpoint}`;
   const headers = {
-    'X-API-Key': state.apiKey,
     'Content-Type': 'application/json',
     ...options.headers,
   };
+
+  // Use appropriate auth header
+  if (state.authMethod === 'oauth' && state.oauthToken) {
+    headers['Authorization'] = `Bearer ${state.oauthToken}`;
+  } else if (state.apiKey) {
+    headers['X-API-Key'] = state.apiKey;
+  }
 
   const res = await fetch(url, { ...options, headers });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -50,14 +97,18 @@ async function connect() {
   const keyInput = document.getElementById('api-key');
   const btn = document.getElementById('btn-connect');
 
-  state.apiKey = keyInput.value.trim();
-  
-  if (!state.apiKey) {
-    shakeInput(keyInput);
-    return;
+  // If not OAuth, require API key
+  if (state.authMethod !== 'oauth') {
+    state.apiKey = keyInput.value.trim();
+    state.authMethod = 'apikey';
+
+    if (!state.apiKey) {
+      shakeInput(keyInput);
+      return;
+    }
   }
 
-  setButtonLoading(btn, true);
+  if (btn) setButtonLoading(btn, true);
 
   try {
     // Fetch everything in parallel
@@ -70,7 +121,7 @@ async function connect() {
     ]);
 
     // Validate response
-    if (!userData.user) throw new Error('Invalid API key');
+    if (!userData.user) throw new Error('Invalid credentials');
 
     state.currentUser = userData.user;
     state.friends = friendsData.friends || [];
@@ -78,9 +129,11 @@ async function connect() {
     state.currencies = currencyData.currencies || [];
     state.categories = categoryData.categories || [];
 
-    // Save API key & URL
-    localStorage.setItem('sw_api_key', state.apiKey);
-    localStorage.setItem('sw_server_url', state.serverUrl);
+    // Save auth
+    if (state.authMethod === 'apikey') {
+      localStorage.setItem('sw_api_key', state.apiKey);
+      localStorage.setItem('sw_auth_method', 'apikey');
+    }
 
     // Populate UI
     populateUI();
@@ -88,17 +141,44 @@ async function connect() {
     // Switch screen
     showScreen('screen-main');
   } catch (err) {
-    showToast('Connection failed. Check your API key.', 'error');
+    const msg = state.authMethod === 'oauth'
+      ? 'Connection failed. Try signing in again.'
+      : 'Connection failed. Check your API key.';
+    showToast(msg, 'error');
+    // Clear invalid OAuth token
+    if (state.authMethod === 'oauth') {
+      localStorage.removeItem('sw_oauth_token');
+      localStorage.removeItem('sw_auth_method');
+      state.oauthToken = '';
+      state.authMethod = '';
+    }
     console.error(err);
   } finally {
-    setButtonLoading(btn, false);
+    if (btn) setButtonLoading(btn, false);
   }
+}
+
+// ─── OAuth Login ──────────────────────────
+function oauthLogin() {
+  window.location.href = '/oauth/login';
+}
+
+// ─── Toggle API Key Section ───────────────
+function toggleApiKeySection() {
+  const fields = document.getElementById('apikey-fields');
+  const btn = document.getElementById('btn-expand-apikey');
+  fields.classList.toggle('collapsed');
+  btn.classList.toggle('expanded');
 }
 
 // ─── Logout ───────────────────────────────
 function logout() {
   localStorage.removeItem('sw_api_key');
+  localStorage.removeItem('sw_oauth_token');
+  localStorage.removeItem('sw_auth_method');
   state.apiKey = '';
+  state.oauthToken = '';
+  state.authMethod = '';
   state.currentUser = null;
   document.getElementById('api-key').value = '';
   showScreen('screen-setup');

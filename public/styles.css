@@ -871,6 +871,103 @@ body::before {
   font-size: 14px;
 }
 
+/* ─── OAuth / Auth Styles ─── */
+
+.btn-oauth {
+  background: linear-gradient(135deg, var(--green), var(--green-dark));
+  color: #fff;
+  box-shadow: 0 4px 16px var(--green-glow);
+  font-size: 15px;
+  font-weight: 600;
+  gap: 10px;
+}
+
+.btn-oauth:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px var(--green-glow);
+}
+
+.btn-oauth:active {
+  transform: translateY(0);
+}
+
+.btn-oauth.hidden {
+  display: none !important;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.auth-divider span {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-hint);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.auth-divider.hidden {
+  display: none !important;
+}
+
+.btn-expand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font);
+  color: var(--text-dim);
+  background: none;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-expand:hover {
+  color: var(--text);
+  border-color: var(--green);
+  background: rgba(91, 197, 167, 0.05);
+}
+
+.expand-chevron {
+  transition: transform 0.3s ease;
+}
+
+.btn-expand.expanded .expand-chevron {
+  transform: rotate(180deg);
+}
+
+.apikey-fields {
+  overflow: hidden;
+  transition: max-height 0.35s ease, opacity 0.3s ease, margin-top 0.3s ease;
+  max-height: 300px;
+  opacity: 1;
+  margin-top: 16px;
+}
+
+.apikey-fields.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+}
+
 /* ─── Utilities ─── */
 
 .hidden {
