@@ -668,7 +668,8 @@ function aggregateByCategory(expenses) {
 
   expenses.forEach((exp) => {
     if (exp.deleted_at) return; // skip deleted
-    if (exp.payment === true) return; // skip payments/settlements
+    if (exp.payment) return; // skip payments/settlements
+    if (exp.creation_method === 'payment') return; // extra guard for settle-ups
 
     // Find user's owed share
     const userShare = (exp.users || []).find((u) => u.user_id === userId || u.user?.id === userId);
