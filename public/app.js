@@ -808,10 +808,19 @@ function aggregateByCategory(expenses) {
     }
 
     if (!categoryMap[catName]) {
-      categoryMap[catName] = { name: catName, amount: 0, count: 0 };
+      categoryMap[catName] = { name: catName, amount: 0, count: 0, subcategories: {} };
     }
     categoryMap[catName].amount += owed;
     categoryMap[catName].count++;
+
+    if (subName) {
+      if (!categoryMap[catName].subcategories[subName]) {
+        categoryMap[catName].subcategories[subName] = { name: subName, amount: 0, count: 0 };
+      }
+      categoryMap[catName].subcategories[subName].amount += owed;
+      categoryMap[catName].subcategories[subName].count++;
+    }
+
     total += owed;
     expenseCount++;
   });
@@ -846,19 +855,41 @@ function renderUsageReport({ total, currency, categories, expenseCount, uncatego
     const pct = total > 0 ? ((cat.amount / total) * 100).toFixed(1) : 0;
     const barWidth = ((cat.amount / maxAmount) * 100).toFixed(1);
     const color = CATEGORY_COLORS[i % CATEGORY_COLORS.length];
+    
+    const subcats = Object.values(cat.subcategories || {}).sort((a, b) => b.amount - a.amount);
+    let subcatsHtml = '';
+    if (subcats.length > 0) {
+      subcatsHtml = `
+        <div class="report-subcats" style="border-left-color: ${color}">
+          ${subcats.map(sub => {
+            const subPct = cat.amount > 0 ? ((sub.amount / cat.amount) * 100).toFixed(1) : 0;
+            return `
+              <div class="report-subcat-row">
+                <span class="report-subcat-name">${sub.name}</span>
+                <span class="report-subcat-amount">${sub.amount.toFixed(2)} (${subPct}%)</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
     return `
-      <div class="report-bar-row">
-        <div class="report-bar-label">
-          <span class="report-cat-dot" style="background:${color}"></span>
-          <span class="report-cat-name">${cat.name}</span>
+      <div class="report-bar-group">
+        <div class="report-bar-row">
+          <div class="report-bar-label">
+            <span class="report-cat-dot" style="background:${color}"></span>
+            <span class="report-cat-name">${cat.name}</span>
+          </div>
+          <div class="report-bar-track">
+            <div class="report-bar-fill" style="width:0%;background:${color}" data-width="${barWidth}%"></div>
+          </div>
+          <div class="report-bar-value">
+            <span class="report-bar-amount">${cat.amount.toFixed(2)}</span>
+            <span class="report-bar-pct">${pct}%</span>
+          </div>
         </div>
-        <div class="report-bar-track">
-          <div class="report-bar-fill" style="width:0%;background:${color}" data-width="${barWidth}%"></div>
-        </div>
-        <div class="report-bar-value">
-          <span class="report-bar-amount">${cat.amount.toFixed(2)}</span>
-          <span class="report-bar-pct">${pct}%</span>
-        </div>
+        ${subcatsHtml}
       </div>
     `;
   }).join('');

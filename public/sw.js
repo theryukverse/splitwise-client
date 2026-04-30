@@ -1,4 +1,4 @@
-const CACHE_NAME = 'splitwise-quick-v9';
+const CACHE_NAME = 'splitwise-quick-v11';
 const ASSETS = [
   './',
   'index.html',

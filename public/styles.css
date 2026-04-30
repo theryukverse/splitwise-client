@@ -845,6 +845,41 @@ body::before {
   color: var(--text-dim);
 }
 
+.report-bar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.report-subcats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border-left: 3px solid rgba(255, 255, 255, 0.1);
+}
+
+.report-subcat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.report-subcat-name {
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+.report-subcat-amount {
+  color: var(--text);
+  font-weight: 600;
+  opacity: 0.8;
+}
+
 .report-summary-row {
   display: flex;
   align-items: center;
