@@ -1,4 +1,4 @@
-# Splitwise Quick Client
+# Split Now Client
 
 A lightweight, mobile-friendly PWA client for Splitwise designed for lightning-fast expense creation. Supports offline caching, multiple split options (Equal, Exact, Percent, Shares, Adjustments), and quick data entry.
 

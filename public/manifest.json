@@ -1,6 +1,6 @@
 {
-  "name": "Splitwise Quick",
-  "short_name": "SplitQuick",
+  "name": "Split Now",
+  "short_name": "SplitNow",
   "description": "Quick expense creation for Splitwise",
   "start_url": "/",
   "display": "standalone",
@@ -9,14 +9,10 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/icon-192.svg",
-      "sizes": "192x192",
-      "type": "image/svg+xml"
-    },
-    {
-      "src": "/icon-512.svg",
-      "sizes": "512x512",
-      "type": "image/svg+xml"
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }
