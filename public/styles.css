@@ -167,23 +167,24 @@ body::before {
 
 .input {
   width: 100%;
-  padding: 14px 16px;
+  height: 54px;
+  padding: 0 18px;
   font-size: 15px;
   font-family: var(--font);
   color: var(--text);
   background: var(--bg-input);
   border: 1.5px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 12px;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   -webkit-appearance: none;
   appearance: none;
 }
 
 .input:focus {
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px var(--green-glow);
-  background: rgba(255, 255, 255, 0.09);
+  border-color: var(--green);
+  box-shadow: 0 0 0 4px rgba(91, 197, 167, 0.15);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .input::placeholder {
@@ -191,17 +192,18 @@ body::before {
 }
 
 .input-amount {
-  font-size: 22px;
-  font-weight: 600;
+  font-size: 26px;
+  font-weight: 700;
   letter-spacing: -0.5px;
+  color: #fff;
 }
 
 .select {
   cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%238a8a9a' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%238a8a9a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 14px center;
-  padding-right: 36px;
+  background-position: right 16px center;
+  padding-right: 40px;
 }
 
 .select option {
@@ -212,6 +214,8 @@ body::before {
 .textarea {
   resize: vertical;
   min-height: 64px;
+  height: auto;
+  padding: 14px 18px; /* Restore vertical padding for textarea since it can't rely on height */
   line-height: 1.5;
 }
 
@@ -401,37 +405,39 @@ body::before {
 .split-toggle {
   display: flex;
   flex-wrap: wrap;
-  gap: 0;
+  gap: 4px;
   background: var(--bg-input);
-  border-radius: var(--radius-sm);
-  border: 1.5px solid var(--border);
-  overflow: hidden;
+  border-radius: 12px;
+  padding: 4px;
+  border: 1px solid var(--border);
 }
 
 .split-btn {
   flex: 1 1 auto;
   min-width: 0;
   padding: 10px 8px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   font-family: var(--font);
   color: var(--text-dim);
-  background: none;
+  background: transparent;
   border: none;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   white-space: nowrap;
+}
+
+.split-btn:hover:not(.active) {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .split-btn.active {
   color: #fff;
   background: var(--green);
   box-shadow: 0 2px 8px var(--green-glow);
-}
-
-.split-btn + .split-btn {
-  border-left: 1px solid var(--border);
 }
 
 /* ─── Friends List ─── */
@@ -458,18 +464,20 @@ body::before {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
-  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  border-radius: 12px;
   background: var(--bg-card);
-  border: 1.5px solid transparent;
+  border: 1.5px solid var(--border);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
   -webkit-user-select: none;
 }
 
 .friend-item:hover {
   background: var(--bg-card-hover);
+  transform: translateY(-1px);
+  border-color: rgba(91, 197, 167, 0.4);
 }
 
 .friend-item.selected {
