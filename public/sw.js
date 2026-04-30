@@ -1,11 +1,12 @@
-const CACHE_NAME = "split-now-v4";
+const CACHE_NAME = "split-now-v5";
 const ASSETS = [
   "./",
   "index.html",
   "styles.css",
   "app.js",
   "manifest.json",
-  "icon.svg",
+  "icon-192.png",
+  "icon-512.png"
 ];
 
 self.addEventListener("install", (event) => {
