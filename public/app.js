@@ -790,10 +790,11 @@ async function fetchUsageData() {
   const year = state.usageYear;
   const month = state.usageMonth;
 
-  // Date range: first day to last day of the month
-  const dateAfter = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-  const lastDay = new Date(year, month + 1, 0).getDate();
-  const dateBefore = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  // Date range: 1st of current month to 1st of next month (exclusive)
+  const dateAfter = `${year}-${String(month + 1).padStart(2, '0')}-01T00:00:00Z`;
+  
+  const nextMonthDate = new Date(year, month + 1, 1);
+  const dateBefore = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}-01T00:00:00Z`;
 
   try {
     const data = await api(`expenses?dated_after=${dateAfter}&dated_before=${dateBefore}&limit=999`);
