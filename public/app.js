@@ -127,12 +127,13 @@ async function connect() {
 
   try {
     // Fetch everything in parallel
-    const [userData, friendsData, groupsData, currencyData, categoryData] = await Promise.all([
+    const [userData, friendsData, groupsData, currencyData, categoryData, expensesData] = await Promise.all([
       api('current-user'),
       api('friends'),
       api('groups'),
       api('currencies'),
       api('categories'),
+      api('expenses?limit=100')
     ]);
 
     // Validate response
@@ -143,6 +144,7 @@ async function connect() {
     state.groups = groupsData.groups || [];
     state.currencies = currencyData.currencies || [];
     state.categories = categoryData.categories || [];
+    state.recentExpenses = expensesData.expenses || [];
 
     // Save auth
     if (state.authMethod === 'apikey') {
@@ -223,6 +225,20 @@ function populateUI() {
   // Category dropdown
   const categorySelect = document.getElementById('category');
   categorySelect.innerHTML = '<option value="">General</option>';
+
+  const topCategories = getTopCategories(state.recentExpenses || [], state.categories);
+  if (topCategories.length > 0) {
+    const topGroup = document.createElement('optgroup');
+    topGroup.label = 'Top Used';
+    topCategories.forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = cat.id;
+      opt.textContent = `${cat.name} (${cat.parentName})`;
+      topGroup.appendChild(opt);
+    });
+    categorySelect.appendChild(topGroup);
+  }
+
   state.categories.forEach((cat) => {
     if (cat.subcategories) {
       const optGroup = document.createElement('optgroup');
@@ -260,6 +276,40 @@ function populateUI() {
     opt.textContent = `${f.first_name} ${f.last_name || ''}`.trim();
     paidBySelect.appendChild(opt);
   });
+}
+
+// ─── Helpers ──────────────────────────────
+function getTopCategories(expenses, categories) {
+  const categoryCounts = {};
+  expenses.forEach((exp) => {
+    if (exp.deleted_at || exp.payment || exp.creation_method === 'payment') return;
+    if (/^settle\s+all\s+balances$/i.test(exp.description)) return;
+    const catId = exp.category?.id;
+    if (catId) {
+      categoryCounts[catId] = (categoryCounts[catId] || 0) + 1;
+    }
+  });
+
+  // Sort and get top 3
+  const topIds = Object.keys(categoryCounts)
+    .sort((a, b) => categoryCounts[b] - categoryCounts[a])
+    .slice(0, 3)
+    .map(Number);
+
+  const topCategories = [];
+  categories.forEach((cat) => {
+    if (cat.subcategories) {
+      cat.subcategories.forEach((sub) => {
+        if (topIds.includes(sub.id)) {
+          topCategories.push({ id: sub.id, name: sub.name, parentName: cat.name });
+        }
+      });
+    }
+  });
+
+  // Maintain sorted order
+  topCategories.sort((a, b) => topIds.indexOf(a.id) - topIds.indexOf(b.id));
+  return topCategories;
 }
 
 // ─── Friends Rendering ────────────────────
@@ -855,21 +905,21 @@ function renderUsageReport({ total, currency, categories, expenseCount, uncatego
     const pct = total > 0 ? ((cat.amount / total) * 100).toFixed(1) : 0;
     const barWidth = ((cat.amount / maxAmount) * 100).toFixed(1);
     const color = CATEGORY_COLORS[i % CATEGORY_COLORS.length];
-    
+
     const subcats = Object.values(cat.subcategories || {}).sort((a, b) => b.amount - a.amount);
     let subcatsHtml = '';
     if (subcats.length > 0) {
       subcatsHtml = `
         <div class="report-subcats" style="border-left-color: ${color}">
           ${subcats.map(sub => {
-            const subPct = cat.amount > 0 ? ((sub.amount / cat.amount) * 100).toFixed(1) : 0;
-            return `
+        const subPct = cat.amount > 0 ? ((sub.amount / cat.amount) * 100).toFixed(1) : 0;
+        return `
               <div class="report-subcat-row">
                 <span class="report-subcat-name">${sub.name}</span>
                 <span class="report-subcat-amount">${sub.amount.toFixed(2)} (${subPct}%)</span>
               </div>
             `;
-          }).join('')}
+      }).join('')}
         </div>
       `;
     }
