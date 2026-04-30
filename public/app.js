@@ -66,9 +66,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('auth-divider').classList.add('hidden');
   }
 
-  // Register service worker
+  // Register service worker with auto-update support
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => { });
+    // Track whether a SW already controls this page (i.e. not a first visit)
+    const hadController = !!navigator.serviceWorker.controller;
+
+    navigator.serviceWorker.register('sw.js').then((registration) => {
+      // Check for updates every 60 seconds
+      setInterval(() => registration.update(), 60 * 1000);
+    }).catch(() => { });
+
+    // When a new service worker takes control, prompt the user to reload
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      // Skip on first-ever SW registration (no previous controller)
+      if (!hadController) return;
+
+      console.log('[SW] New version available');
+      showUpdateToast();
+    });
   }
 });
 
@@ -595,6 +610,7 @@ function showToast(message, type = 'success') {
   const toast = document.getElementById('toast');
   toast.textContent = message;
   toast.className = `toast ${type}`;
+  toast.onclick = null;
 
   // Force reflow
   toast.offsetHeight;
@@ -603,6 +619,18 @@ function showToast(message, type = 'success') {
   setTimeout(() => {
     toast.classList.remove('visible');
   }, 3000);
+}
+
+function showUpdateToast() {
+  const toast = document.getElementById('toast');
+  toast.textContent = '🔄 New version available — tap to update';
+  toast.className = 'toast update';
+
+  toast.offsetHeight;
+  toast.classList.add('visible');
+
+  toast.onclick = () => window.location.reload();
+  // Don't auto-dismiss — let the user decide when to reload
 }
 
 function shakeInput(input) {

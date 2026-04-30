@@ -626,6 +626,13 @@ body::before {
   box-shadow: 0 8px 24px rgba(255, 107, 107, 0.3);
 }
 
+.toast.update {
+  background: linear-gradient(135deg, #4facfe, #00f2fe);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(79, 172, 254, 0.3);
+  cursor: pointer;
+}
+
 /* ─── Empty State ─── */
 
 .empty-state {
