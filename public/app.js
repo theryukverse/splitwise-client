@@ -762,14 +762,20 @@ function aggregateByCategory(expenses) {
   let total = 0;
   let currency = state.currentUser?.default_currency || 'INR';
   let expenseCount = 0;
+  const uncategorized = []; // track expenses with no real category
 
-  // Build a lookup from category ID -> name from state.categories
-  const catNameMap = {};
+  // Build a lookup from subcategory ID -> parent category name
+  // Splitwise has parent categories (e.g. "Food and Drink") with subcategories
+  // (e.g. "Groceries", "General"). We want to group by the parent name.
+  const subToParentName = {};
+  const subIdToSubName = {};
   (state.categories || []).forEach((cat) => {
-    catNameMap[cat.id] = cat.name;
+    subToParentName[cat.id] = cat.name;
+    subIdToSubName[cat.id] = cat.name;
     if (cat.subcategories) {
       cat.subcategories.forEach((sub) => {
-        catNameMap[sub.id] = sub.name;
+        subToParentName[sub.id] = cat.name; // map subcategory to PARENT name
+        subIdToSubName[sub.id] = sub.name;
       });
     }
   });
@@ -778,6 +784,7 @@ function aggregateByCategory(expenses) {
     if (exp.deleted_at) return; // skip deleted
     if (exp.payment) return; // skip payments/settlements
     if (exp.creation_method === 'payment') return; // extra guard for settle-ups
+    if (/^settle\s+all\s+balances$/i.test(exp.description)) return; // skip settle-all
 
     // Find user's owed share
     const userShare = (exp.users || []).find((u) => u.user_id === userId || u.user?.id === userId);
@@ -787,8 +794,18 @@ function aggregateByCategory(expenses) {
     if (owed <= 0) return;
 
     const catId = exp.category?.id || 0;
-    const catName = exp.category?.name || catNameMap[catId] || 'General';
+    const subName = subIdToSubName[catId] || exp.category?.name || '';
+    const catName = subToParentName[catId] || exp.category?.name || 'Other';
     currency = exp.currency_code || currency;
+
+    // Track uncategorized: subcategory is "General" or no category at all
+    if (subName === 'General' || catName === 'Other' || !catId) {
+      uncategorized.push({
+        description: exp.description || 'Untitled',
+        amount: owed,
+        date: exp.date,
+      });
+    }
 
     if (!categoryMap[catName]) {
       categoryMap[catName] = { name: catName, amount: 0, count: 0 };
@@ -802,10 +819,10 @@ function aggregateByCategory(expenses) {
   // Sort by amount descending
   const categories = Object.values(categoryMap).sort((a, b) => b.amount - a.amount);
 
-  return { total, currency, categories, expenseCount };
+  return { total, currency, categories, expenseCount, uncategorized };
 }
 
-function renderUsageReport({ total, currency, categories, expenseCount }) {
+function renderUsageReport({ total, currency, categories, expenseCount, uncategorized }) {
   const container = document.getElementById('usage-report');
 
   if (expenseCount === 0) {
@@ -853,6 +870,37 @@ function renderUsageReport({ total, currency, categories, expenseCount }) {
     </div>
   `;
 
+  // Uncategorized expenses section
+  let uncategorizedHtml = '';
+  if (uncategorized && uncategorized.length > 0) {
+    const items = uncategorized.map((exp) => {
+      const date = exp.date ? new Date(exp.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '';
+      return `
+        <div class="uncat-item">
+          <span class="uncat-desc">${exp.description}</span>
+          <div class="uncat-meta">
+            <span class="uncat-date">${date}</span>
+            <span class="uncat-amount">${exp.amount.toFixed(2)}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    uncategorizedHtml = `
+      <div class="report-divider"></div>
+      <div class="uncat-section">
+        <div class="uncat-header">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 8v4M12 16h.01"/>
+          </svg>
+          <span>Uncategorized (${uncategorized.length})</span>
+        </div>
+        <div class="uncat-list">${items}</div>
+      </div>
+    `;
+  }
+
   container.innerHTML = `
     <div class="report-card glass">
       <div class="report-total-section">
@@ -865,6 +913,7 @@ function renderUsageReport({ total, currency, categories, expenseCount }) {
       </div>
       <div class="report-divider"></div>
       ${summaryHtml}
+      ${uncategorizedHtml}
     </div>
   `;
 
