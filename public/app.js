@@ -790,8 +790,9 @@ async function fetchUsageData() {
   const year = state.usageYear;
   const month = state.usageMonth;
 
-  // Date range: 1st of current month to 1st of next month (exclusive)
-  const dateAfter = `${year}-${String(month + 1).padStart(2, '0')}-01T00:00:00Z`;
+  // Date range: from the last second of the previous month to the 1st of the next month
+  const prevMonthLastDate = new Date(year, month, 0);
+  const dateAfter = `${prevMonthLastDate.getFullYear()}-${String(prevMonthLastDate.getMonth() + 1).padStart(2, '0')}-${String(prevMonthLastDate.getDate()).padStart(2, '0')}T23:59:59Z`;
   
   const nextMonthDate = new Date(year, month + 1, 1);
   const dateBefore = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}-01T00:00:00Z`;
