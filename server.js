@@ -222,7 +222,7 @@ app.get('/api/expenses', async (req, res) => {
 });
 
 // Create expense
-app.post('/api/create-expense', async (req, res) => {
+app.post('/api/expenses', async (req, res) => {
   try {
     const headers = getAuthHeader(req);
     if (!headers) return res.status(401).json({ error: 'Authentication required' });

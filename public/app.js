@@ -617,7 +617,7 @@ async function createExpense(event) {
       });
     }
 
-    const result = await api('create-expense', {
+    const result = await api('expenses', {
       method: 'POST',
       body: JSON.stringify(expenseData),
     });
@@ -1253,9 +1253,6 @@ function fetchBalancesData() {
             <span class="balance-value">${b.currency} ${amountStr}</span>
           </div>
         </div>
-        <button class="btn btn-secondary btn-sm" onclick="confirmSettleUp(${b.id}, '${b.name.replace(/'/g, "\\'")}', ${b.amount}, '${b.currency}')">
-          Settle Up
-        </button>
       </div>
     `;
   }).join('');
@@ -1263,64 +1260,7 @@ function fetchBalancesData() {
   container.innerHTML = `<div class="balances-container">${html}</div>`;
 }
 
-function confirmSettleUp(friendId, friendName, amount, currency) {
-  if (confirm(`Are you sure you want to settle up with ${friendName}? This will record a cash payment of ${currency} ${Math.abs(amount).toFixed(2)}.`)) {
-    executeSettleUp(friendId, friendName, amount, currency);
-  }
-}
 
-async function executeSettleUp(friendId, friendName, amount, currency) {
-  try {
-    const myId = state.currentUser.id;
-    const isOwed = amount > 0;
-    const absAmount = Math.abs(amount).toFixed(2);
-    
-    // If they owe me (amount > 0), they are paying me: Payer = friend, Payee = me
-    // If I owe them (amount < 0), I am paying them: Payer = me, Payee = friend
-    
-    const payerId = isOwed ? friendId : myId;
-    const payeeId = isOwed ? myId : friendId;
-
-    const payload = {
-      cost: absAmount,
-      description: 'Payment',
-      payment: true,
-      currency_code: currency,
-      users: [
-        {
-          user_id: payerId,
-          paid_share: absAmount,
-          owed_share: '0.0'
-        },
-        {
-          user_id: payeeId,
-          paid_share: '0.0',
-          owed_share: absAmount
-        }
-      ]
-    };
-
-    const res = await api('expenses', {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    });
-
-    if (res.errors && Object.keys(res.errors).length > 0) {
-      throw new Error(JSON.stringify(res.errors));
-    }
-
-    showToast(`Settled up with ${friendName}!`);
-    
-    // Refresh friends data silently and then refresh balances view
-    const data = await api('friends');
-    state.friends = data.friends || [];
-    fetchBalancesData();
-    
-  } catch (err) {
-    showToast('Failed to settle up.', 'error');
-    console.error(err);
-  }
-}
 
 // ─── Activity Report ───────────────────────
 
