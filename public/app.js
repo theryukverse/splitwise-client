@@ -157,8 +157,26 @@ async function connect() {
     // Populate UI
     populateUI();
 
+    // UX: Sync currency symbol and split summary
+    const curSelect = document.getElementById('currency');
+    const amtInput = document.getElementById('amount');
+    
+    // Personalized Quick Categories
+    populateQuickCategories();
+
+    if (curSelect && amtInput) {
+      curSelect.addEventListener('change', () => {
+        const sym = curSelect.value === 'INR' ? '₹' : (curSelect.value === 'USD' ? '$' : curSelect.value);
+        document.getElementById('amount-currency-symbol').textContent = sym;
+        updateSplitSummary();
+      });
+      amtInput.addEventListener('input', updateSplitSummary);
+      document.getElementById('paid-by').addEventListener('change', updateSplitSummary);
+    }
+
     // Switch screen
     showScreen('screen-main');
+    if (amtInput) setTimeout(() => amtInput.focus(), 200);
   } catch (err) {
     const msg = state.authMethod === 'oauth'
       ? 'Connection failed. Try signing in again.'
@@ -477,6 +495,93 @@ function renderCustomSplit() {
 }
 
 // ─── Create Expense ───────────────────────
+function populateQuickCategories() {
+  const container = document.querySelector('.quick-categories');
+  if (!container || !state.recentExpenses) return;
+
+  const counts = {};
+  state.recentExpenses.forEach(exp => {
+    if (exp.deleted_at || !exp.category || !exp.category.name) return;
+    const name = exp.category.name;
+    counts[name] = (counts[name] || 0) + 1;
+  });
+
+  // Sort by frequency
+  let topCats = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .map(entry => entry[0])
+    .slice(0, 4);
+
+  // Fallbacks if not enough data
+  const fallbacks = ['Dining out', 'Groceries', 'Taxi', 'Internet'];
+  while (topCats.length < 4 && fallbacks.length > 0) {
+    const next = fallbacks.shift();
+    if (!topCats.includes(next)) topCats.push(next);
+  }
+
+  // Icons mapping
+  const iconMap = {
+    'Dining out': '🍴', 'Groceries': '🛒', 'Taxi': '🚗', 'Internet': '🌐',
+    'General': '📦', 'Rent': '🏠', 'Utilities': '💡', 'Entertainment': '🎬',
+    'Gas/fuel': '⛽', 'Gifts': '🎁', 'Maintenance': '🛠️', 'Cleaning': '🧹'
+  };
+
+  container.innerHTML = topCats.map(cat => {
+    const icon = iconMap[cat] || '🏷️';
+    const shortName = cat.length > 12 ? cat.substring(0, 10) + '..' : cat;
+    return `<button type="button" class="quick-cat-btn" onclick="quickSelectCategory('${cat}')">${icon} ${shortName}</button>`;
+  }).join('');
+}
+
+function quickSelectCategory(name) {
+  const select = document.getElementById('category');
+  if (!select) return;
+  
+  // Find option with name
+  for (let i = 0; i < select.options.length; i++) {
+    if (select.options[i].text.toLowerCase().includes(name.toLowerCase())) {
+      select.selectedIndex = i;
+      // Visual feedback
+      const btn = Array.from(document.querySelectorAll('.quick-cat-btn')).find(b => b.textContent.includes(name));
+      if (btn) {
+        btn.classList.add('active');
+        setTimeout(() => btn.classList.remove('active'), 600);
+      }
+      break;
+    }
+  }
+}
+
+function updateSplitSummary() {
+  const amount = parseFloat(document.getElementById('amount').value) || 0;
+  const currency = document.getElementById('currency').value;
+  const splitType = state.splitType;
+  const paidBySelf = document.getElementById('paid-by').value === 'self';
+  const selectedFriends = Array.from(document.querySelectorAll('.friend-item.selected'));
+  const splitWithCount = selectedFriends.length + 1; // Including self
+  
+  const hintEl = document.getElementById('split-hint');
+  if (!hintEl) return;
+
+  const symbol = currency === 'INR' ? '₹' : (currency === 'USD' ? '$' : currency);
+
+  if (amount <= 0) {
+    hintEl.textContent = 'Enter amount';
+    return;
+  }
+
+  if (splitType === 'equal') {
+    const share = (amount / splitWithCount).toFixed(2);
+    if (paidBySelf) {
+      hintEl.textContent = `You pay ${symbol}${amount}, others owe you ${symbol}${share} each`;
+    } else {
+      hintEl.textContent = `Friend pays, you owe ${symbol}${share}`;
+    }
+  } else {
+    hintEl.textContent = `Custom split with ${selectedFriends.length} friends`;
+  }
+}
+
 async function createExpense(event) {
   event.preventDefault();
 
@@ -626,8 +731,10 @@ async function createExpense(event) {
       const errorMsg = Object.values(result.errors).flat().join(', ');
       showToast(`Error: ${errorMsg}`, 'error');
     } else {
-      showToast(`"${description}" — ₹${amount.toFixed(2)} created!`, 'success');
+      showToast(`"${description}" created!`, 'success');
       resetForm();
+      populateQuickCategories();
+      fetchActivityData();
     }
   } catch (err) {
     showToast('Failed to create expense', 'error');
@@ -772,7 +879,9 @@ function showTab(screenId) {
   const user = state.currentUser;
   const initials = `${(user.first_name || '')[0] || ''}${(user.last_name || '')[0] || ''}`;
 
-  if (screenId === 'screen-usage') {
+  if (screenId === 'screen-main') {
+    setTimeout(() => document.getElementById('amount').focus(), 100);
+  } else if (screenId === 'screen-usage') {
     document.getElementById('usage-user-avatar').textContent = initials;
     fetchUsageData();
   } else if (screenId === 'screen-analysis') {

@@ -407,6 +407,191 @@ body::before {
   display: none; /* Safari and Chrome */
 }
 
+/* ─── Beautified Expense Form ─── */
+
+.hero-amount-section {
+  padding: 32px 16px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(91, 197, 167, 0.1) 0%, transparent 100%);
+  margin: -16px -16px 24px -16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.amount-input-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.amount-currency-symbol {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.hero-amount-input {
+  background: transparent;
+  border: none;
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--text);
+  width: 200px;
+  text-align: center;
+  outline: none;
+  font-family: var(--font);
+}
+
+.hero-amount-input::placeholder {
+  color: var(--text-hint);
+  opacity: 0.3;
+}
+
+.hero-desc-wrapper {
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+.hero-desc-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-dim);
+  outline: none;
+  padding: 8px;
+  border-bottom: 1px solid transparent;
+  transition: all 0.3s;
+}
+
+.hero-desc-input:focus {
+  color: var(--text);
+  border-bottom-color: var(--green);
+}
+
+.quick-categories {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  overflow-x: auto;
+  padding: 4px;
+  scrollbar-width: none;
+}
+
+.quick-categories::-webkit-scrollbar {
+  display: none;
+}
+
+.quick-cat-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-dim);
+  white-space: nowrap;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.quick-cat-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  border-color: var(--green);
+}
+
+.quick-cat-btn.active {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+  transform: scale(0.95);
+}
+
+.form-card {
+  padding: 20px;
+  margin-bottom: 16px;
+  border-radius: var(--radius-md);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.header-hint {
+  font-size: 12px;
+  color: var(--green);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.no-margin {
+  margin-bottom: 0;
+}
+
+.submit-section {
+  margin-top: 32px;
+  padding-bottom: 40px;
+}
+
+.btn-submit-hero {
+  width: 100%;
+  height: 56px;
+  font-size: 17px;
+  font-weight: 700;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--green), #3fb190);
+  box-shadow: 0 8px 24px var(--green-glow);
+}
+
+.btn-submit-hero:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px var(--green-glow);
+}
+
+.btn-submit-hero:active {
+  transform: translateY(0);
+}
+
+/* ─── Custom Split ─── */
+.custom-split {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.split-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.split-input {
+  width: 100px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--bg-input);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  outline: none;
+  text-align: right;
+  transition: all 0.2s;
+}
+
 .form-group {
   margin-bottom: 20px;
 }
@@ -554,50 +739,6 @@ body::before {
   border: solid #fff;
   border-width: 0 2px 2px 0;
   transform: rotate(45deg) translateY(-1px);
-}
-
-/* ─── Custom Split ─── */
-
-.custom-split {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 20px;
-}
-
-.custom-split.hidden {
-  display: none;
-}
-
-.split-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  background: var(--bg-card);
-  border-radius: var(--radius-sm);
-}
-
-.split-row .friend-name {
-  flex: 1;
-}
-
-.split-input {
-  width: 90px;
-  padding: 8px 12px;
-  font-size: 14px;
-  font-family: var(--font);
-  color: var(--text);
-  background: var(--bg-input);
-  border: 1.5px solid var(--border);
-  border-radius: 8px;
-  outline: none;
-  text-align: right;
-  transition: border-color 0.2s;
-}
-
-.split-input:focus {
-  border-color: var(--border-focus);
 }
 
 .split-suffix {
