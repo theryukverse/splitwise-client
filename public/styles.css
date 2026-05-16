@@ -431,6 +431,19 @@ body::before {
   color: var(--green);
 }
 
+input[type=number] {
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+  margin: 0;
+}
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .hero-amount-input {
   background: transparent;
   border: none;
