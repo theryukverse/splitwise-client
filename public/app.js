@@ -246,19 +246,6 @@ function populateUI() {
   const categorySelect = document.getElementById('category');
   categorySelect.innerHTML = '<option value="">General</option>';
 
-  const topCategories = getTopCategories(state.recentExpenses || [], state.categories);
-  if (topCategories.length > 0) {
-    const topGroup = document.createElement('optgroup');
-    topGroup.label = 'Top Used';
-    topCategories.forEach(cat => {
-      const opt = document.createElement('option');
-      opt.value = cat.id;
-      opt.textContent = `${cat.name} (${cat.parentName})`;
-      topGroup.appendChild(opt);
-    });
-    categorySelect.appendChild(topGroup);
-  }
-
   state.categories.forEach((cat) => {
     if (cat.subcategories) {
       const optGroup = document.createElement('optgroup');
@@ -303,41 +290,7 @@ function populateUI() {
   });
 }
 
-// ─── Helpers ──────────────────────────────
-function getTopCategories(expenses, categories) {
-  const categoryCounts = {};
-  expenses.forEach((exp) => {
-    if (exp.deleted_at || exp.payment || exp.creation_method === 'payment') return;
-    if (/^settle\s+all\s+balances$/i.test(exp.description)) return;
-    const catId = exp.category?.id;
-    if (catId) {
-      categoryCounts[catId] = (categoryCounts[catId] || 0) + 1;
-    }
-  });
-
-  // Sort and get top 3
-  const topIds = Object.keys(categoryCounts)
-    .sort((a, b) => categoryCounts[b] - categoryCounts[a])
-    .slice(0, 3)
-    .map(Number);
-
-  const topCategories = [];
-  categories.forEach((cat) => {
-    if (cat.subcategories) {
-      cat.subcategories.forEach((sub) => {
-        if (topIds.includes(sub.id)) {
-          topCategories.push({ id: sub.id, name: sub.name, parentName: cat.name });
-        }
-      });
-    }
-  });
-
-  // Maintain sorted order
-  topCategories.sort((a, b) => topIds.indexOf(a.id) - topIds.indexOf(b.id));
-  return topCategories;
-}
-
-// ─── Friends Rendering ────────────────────
+// ─── Friends Rendering ───
 const AVATAR_COLORS = [
   'linear-gradient(135deg, #667eea, #764ba2)',
   'linear-gradient(135deg, #f093fb, #f5576c)',
@@ -1044,17 +997,15 @@ function aggregateByCategory(expenses) {
 
 function renderUsageReport({ total, currency, categories, expenseCount, uncategorized }) {
   const container = document.getElementById('usage-report');
+  const monthLabel = document.getElementById('month-label').textContent;
+  const topCategory = categories.length > 0 ? categories[0].name : 'N/A';
 
   if (expenseCount === 0) {
     container.innerHTML = `
-      <div class="report-card glass">
-        <div class="report-empty">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-hint)" stroke-width="1.5" stroke-linecap="round">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M8 12h8M12 8v8"/>
-          </svg>
-          <p>No expenses this month</p>
-        </div>
+      <div class="report-card glass hero-analysis" style="text-align: center; padding: 40px 20px;">
+        <span class="analysis-hero-label">Total Spent (${monthLabel})</span>
+        <span class="analysis-hero-amount" style="opacity: 0.5">${currency} 0.00</span>
+        <div style="margin-top: 20px; color: var(--text-hint)">No expenses recorded for this period</div>
       </div>
     `;
     return;
@@ -1144,12 +1095,25 @@ function renderUsageReport({ total, currency, categories, expenseCount, uncatego
   }
 
   container.innerHTML = `
-    <div class="report-card glass">
-      <div class="report-total-section">
-        <span class="report-total-label">Your Share</span>
-        <span class="report-total-amount">${currency} ${total.toFixed(2)}</span>
+    <div class="report-card glass hero-analysis">
+      <div class="analysis-hero-main">
+        <span class="analysis-hero-label">Total Spent (${monthLabel})</span>
+        <span class="analysis-hero-amount">${currency} ${total.toFixed(2)}</span>
       </div>
-      <div class="report-divider"></div>
+      <div class="analysis-hero-grid">
+        <div class="analysis-stat">
+          <span class="stat-label">Expense Count</span>
+          <span class="stat-value">${expenseCount}</span>
+        </div>
+        <div class="analysis-stat">
+          <span class="stat-label">Top Category</span>
+          <span class="stat-value">${topCategory}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="report-card glass" style="margin-top: 20px;">
+      <h4 class="card-title-sm">Category Breakdown</h4>
       <div class="report-bars">
         ${barsHtml}
       </div>
@@ -1462,17 +1426,27 @@ function renderTrends(subcategoriesData, monthLabels, currency, targetId = 'tren
 
 function fetchBalancesData() {
   const container = document.getElementById('balances-list');
+  const heroContainer = document.getElementById('balances-hero');
   
   if (!state.friends || state.friends.length === 0) {
     container.innerHTML = '<div class="empty-state">No friends found.</div>';
+    heroContainer.innerHTML = '';
     return;
   }
 
   const balances = [];
+  let totalOwed = 0;
+  let totalOwe = 0;
+  let currency = state.currentUser?.default_currency || 'INR';
+
   state.friends.forEach(f => {
     if (f.balance && f.balance.length > 0) {
       const amount = parseFloat(f.balance[0].amount);
       if (amount !== 0) {
+        currency = f.balance[0].currency_code;
+        if (amount > 0) totalOwed += amount;
+        else totalOwe += Math.abs(amount);
+
         balances.push({
           id: f.id,
           name: `${f.first_name} ${f.last_name || ''}`.trim(),
@@ -1483,11 +1457,35 @@ function fetchBalancesData() {
     }
   });
 
+  // Render Hero
+  const netBalance = totalOwed - totalOwe;
+  const netColor = netBalance >= 0 ? 'var(--green)' : 'var(--red)';
+  const netSign = netBalance >= 0 ? '+' : '';
+
+  heroContainer.innerHTML = `
+    <div class="report-card glass hero-analysis">
+      <div class="analysis-hero-main">
+        <span class="analysis-hero-label">Net Balance</span>
+        <span class="analysis-hero-amount" style="color: ${netColor}">${netSign}${currency} ${Math.abs(netBalance).toLocaleString()}</span>
+      </div>
+      <div class="analysis-hero-grid">
+        <div class="analysis-stat">
+          <span class="stat-label">You are owed</span>
+          <span class="stat-value" style="color: var(--green)">${currency} ${totalOwed.toLocaleString()}</span>
+        </div>
+        <div class="analysis-stat">
+          <span class="stat-label">You owe</span>
+          <span class="stat-value" style="color: var(--red)">${currency} ${totalOwe.toLocaleString()}</span>
+        </div>
+      </div>
+    </div>
+  `;
+
   balances.sort((a, b) => b.amount - a.amount);
 
   if (balances.length === 0) {
     container.innerHTML = `
-      <div class="empty-state">
+      <div class="empty-state" style="margin-top: 20px;">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round">
           <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>
         </svg>
@@ -1503,19 +1501,19 @@ function fetchBalancesData() {
     const text = isOwed ? 'owes you' : 'you owe';
     const amountStr = Math.abs(b.amount).toFixed(2);
     return `
-      <div class="balance-card">
-        <div class="balance-info">
-          <div class="balance-name">${b.name}</div>
-          <div class="balance-amount" style="color: ${color}">
-            <span class="balance-label">${text}</span>
-            <span class="balance-value">${b.currency} ${amountStr}</span>
+      <div class="balance-card glass" style="margin-bottom: 12px; padding: 16px; border-radius: 16px;">
+        <div class="balance-info" style="display: flex; justify-content: space-between; align-items: center;">
+          <div class="balance-name" style="font-weight: 600; font-size: 15px;">${b.name}</div>
+          <div class="balance-amount" style="text-align: right;">
+            <div style="font-size: 11px; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.5px;">${text}</div>
+            <div style="color: ${color}; font-weight: 700; font-size: 16px;">${b.currency} ${amountStr}</div>
           </div>
         </div>
       </div>
     `;
   }).join('');
 
-  container.innerHTML = `<div class="balances-container">${html}</div>`;
+  container.innerHTML = `<div class="balances-container" style="margin-top: 24px;">${html}</div>`;
 }
 
 

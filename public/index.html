@@ -17,64 +17,55 @@
   <div id="app">
     <!-- ─── Setup Screen ─── -->
     <div id="screen-setup" class="screen active">
-      <div class="setup-container">
-        <div class="logo-section">
-          <div class="logo-icon">
-            <svg viewBox="0 0 48 48" fill="none">
-              <rect width="48" height="48" rx="12" fill="url(#grad1)"/>
-              <path d="M14 24h20M24 14v20M18 18l12 12M30 18l-12 12" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.3"/>
-              <path d="M16 20h16M16 24h16M16 28h12" stroke="white" stroke-width="2" stroke-linecap="round"/>
-              <defs>
-                <linearGradient id="grad1" x1="0" y1="0" x2="48" y2="48">
-                  <stop stop-color="#5bc5a7"/>
-                  <stop offset="1" stop-color="#3a9d82"/>
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-          <h1>Split Now</h1>
-          <p class="subtitle">Create expenses in seconds</p>
+      <div class="auth-hero">
+        <div class="auth-logo-container">
+          <svg width="80" height="80" viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#5bc5a7" />
+                <stop offset="100%" style="stop-color:#3fb190" />
+              </linearGradient>
+            </defs>
+            <path d="M50 10 L90 30 L90 70 L50 90 L10 70 L10 30 Z" fill="none" stroke="url(#logo-grad)" stroke-width="4" />
+            <circle cx="50" cy="50" r="20" fill="url(#logo-grad)" />
+          </svg>
         </div>
-
-        <div class="card glass">
-          <!-- OAuth Sign In (primary) -->
-          <div id="oauth-section">
-            <button id="btn-oauth" class="btn btn-oauth" onclick="oauthLogin()">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/>
-              </svg>
-              <span>Sign in with Splitwise</span>
-            </button>
-          </div>
-
-          <!-- Divider -->
-          <div class="auth-divider" id="auth-divider">
-            <span>or</span>
-          </div>
-
-          <!-- API Key (secondary, collapsible) -->
-          <div id="apikey-section">
-            <button class="btn-expand" id="btn-expand-apikey" onclick="toggleApiKeySection()">
-              <span>Use API key instead</span>
-              <svg class="expand-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
-            </button>
-            <div id="apikey-fields" class="apikey-fields collapsed">
-              <label class="input-label" for="api-key">Splitwise API Key</label>
-              <input type="password" id="api-key" class="input" placeholder="Enter your API key" autocomplete="off">
-              <p class="hint">
-                Get your API key from
-                <a href="https://secure.splitwise.com/apps" target="_blank" rel="noopener">secure.splitwise.com/apps</a>
-              </p>
-              <button id="btn-connect" class="btn btn-primary" onclick="connect()">
-                <span class="btn-text">Connect</span>
-                <span class="btn-loader hidden">
-                  <span class="spinner"></span>
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
+        <h1 class="auth-title">Split Now</h1>
+        <p class="auth-subtitle">Fast, Transparent & Beautiful</p>
       </div>
+
+      <main class="main-content auth-main">
+        <div class="form-card glass auth-card">
+          <button id="btn-oauth" class="btn btn-primary btn-lg btn-oauth" onclick="oauthLogin()">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/>
+            </svg>
+            <span>Sign in with Splitwise</span>
+          </button>
+
+          <div class="auth-divider" id="auth-divider">
+            <span>or use API Key</span>
+          </div>
+
+          <button id="btn-expand-apikey" class="btn-expand" onclick="toggleApiKeySection()">
+            <span>Advanced Connection</span>
+            <svg class="expand-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
+          </button>
+
+          <div id="apikey-fields" class="apikey-fields collapsed">
+            <div class="form-group">
+              <label class="input-label" for="api-key">Splitwise API Key</label>
+              <input type="password" id="api-key" class="input" placeholder="Paste your API key here">
+            </div>
+            <button id="btn-connect" class="btn btn-primary btn-lg" onclick="connect()">
+              <span class="btn-text">Connect</span>
+              <span class="btn-loader hidden"><span class="spinner"></span></span>
+            </button>
+          </div>
+        </div>
+      </main>
     </div>
 
     <!-- ─── Main Screen ─── -->
@@ -290,7 +281,8 @@
         </button>
       </header>
       <main class="main-content">
-        <div id="balances-list" class="balances-list">
+        <div id="balances-hero"></div>
+        <div id="balances-list">
           <div class="usage-loading"><span class="spinner"></span></div>
         </div>
       </main>
@@ -301,7 +293,7 @@
       <header class="header">
         <div class="header-left">
           <div class="avatar" id="activity-user-avatar"></div>
-          <span class="header-title">Recent Activity</span>
+          <span class="header-title">Activity Feed</span>
         </div>
         <button class="btn-icon" onclick="logout()" title="Disconnect">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -309,15 +301,16 @@
           </svg>
         </button>
       </header>
-      <main class="main-content" style="padding-top: calc(85px + env(safe-area-inset-top));">
-        <div class="search-container">
-          <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input type="text" id="activity-search" class="input search-input" placeholder="Search expenses..." oninput="filterActivity()">
+      <main class="main-content">
+        <div class="search-hero">
+          <div class="search-input-wrapper">
+            <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="activity-search" class="input search-input-hero" placeholder="Search expenses or people..." oninput="filterActivity()">
+          </div>
         </div>
-        <div id="activity-list" class="activity-list">
+        <div id="activity-list">
           <div class="usage-loading"><span class="spinner"></span></div>
         </div>
       </main>
