@@ -1191,10 +1191,70 @@ body::before {
 }
 
 @media (min-width: 768px) {
+  body {
+    background: #0a0a0f;
+  }
+  
+  #app {
+    max-width: 100%;
+    margin: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .screen {
+    padding-left: 240px;
+  }
+
+  #screen-setup {
+    padding-left: 0;
+  }
+
+  .header {
+    left: 240px;
+    width: calc(100% - 240px);
+    max-width: none;
+    transform: none;
+  }
+
+  .bottom-nav {
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 240px;
+    height: 100vh;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding-top: 24px;
+    border-top: none;
+    border-right: 1px solid var(--border);
+    max-width: none;
+    transform: none;
+    background: rgba(10, 10, 15, 0.98);
+  }
+
+  .nav-tab {
+    flex: none;
+    flex-direction: row;
+    padding: 16px 24px;
+    gap: 16px;
+    font-size: 15px;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .toast {
+    left: calc(240px + (100% - 240px) / 2);
+  }
+
   .setup-container { padding: 48px 24px; }
+  
   .main-content { 
-    padding: 32px 24px; 
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 40px 32px; 
     padding-top: calc(85px + env(safe-area-inset-top));
-    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+    padding-bottom: 60px;
   }
 }
