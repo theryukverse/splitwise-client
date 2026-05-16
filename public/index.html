@@ -225,13 +225,13 @@
 
     </div>
 
-    <!-- ─── Trends Screen ─── -->
-    <div id="screen-trends" class="screen">
+    <!-- ─── Analysis Screen ─── -->
+    <div id="screen-analysis" class="screen">
       <!-- Header -->
       <header class="header">
         <div class="header-left">
-          <div class="avatar" id="trends-user-avatar"></div>
-          <span class="header-title">Trends</span>
+          <div class="avatar" id="analysis-user-avatar"></div>
+          <span class="header-title">Analysis</span>
         </div>
         <button class="btn-icon" onclick="logout()" title="Disconnect">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -241,11 +241,15 @@
       </header>
 
       <main class="main-content">
-        <div class="report-card glass" style="padding: 16px;">
-          <!-- Chart -->
-          <div id="trends-chart" class="trends-subcat-list">
-            <div class="usage-loading">
-              <span class="spinner"></span>
+        <div id="analysis-content">
+          <div class="usage-loading"><span class="spinner"></span></div>
+        </div>
+
+        <div style="margin-top: 32px;">
+          <h3 class="section-title">Current year trends</h3>
+          <div class="report-card glass" style="padding: 16px;">
+            <div id="analysis-trends-chart" class="trends-subcat-list">
+              <div class="usage-loading"><span class="spinner"></span></div>
             </div>
           </div>
         </div>
@@ -326,13 +330,15 @@
           <path d="M21.21 15.89A10 10 0 118 2.83"/>
           <path d="M22 12A10 10 0 0012 2v10z"/>
         </svg>
-        <span>Usage</span>
+        <span>Report</span>
       </button>
-      <button class="nav-tab" data-tab="screen-trends" onclick="showTab('screen-trends')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+      <button class="nav-tab" data-tab="screen-analysis" onclick="showTab('screen-analysis')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="18" y1="20" x2="18" y2="10"></line>
+          <line x1="12" y1="20" x2="12" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="14"></line>
         </svg>
-        <span>Trends</span>
+        <span>Analysis</span>
       </button>
     </nav>
 

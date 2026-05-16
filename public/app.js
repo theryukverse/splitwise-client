@@ -775,9 +775,9 @@ function showTab(screenId) {
   if (screenId === 'screen-usage') {
     document.getElementById('usage-user-avatar').textContent = initials;
     fetchUsageData();
-  } else if (screenId === 'screen-trends') {
-    document.getElementById('trends-user-avatar').textContent = initials;
-    fetchTrendsData();
+  } else if (screenId === 'screen-analysis') {
+    document.getElementById('analysis-user-avatar').textContent = initials;
+    fetchAnalysisData();
   } else if (screenId === 'screen-balances') {
     document.getElementById('balances-user-avatar').textContent = initials;
     fetchBalancesData();
@@ -1062,8 +1062,157 @@ function renderUsageReport({ total, currency, categories, expenseCount, uncatego
 
 // ─── Trends Report ────────────────────────
 
-async function fetchTrendsData() {
-  const container = document.getElementById('trends-chart');
+async function fetchAnalysisData() {
+  const content = document.getElementById('analysis-content');
+  const trendsChart = document.getElementById('analysis-trends-chart');
+  content.innerHTML = '<div class="usage-loading"><span class="spinner"></span></div>';
+  trendsChart.innerHTML = '<div class="usage-loading"><span class="spinner"></span></div>';
+
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+  // Date range for current month
+  const dateAfter = new Date(currentYear, currentMonth, 1).toISOString();
+  const dateBefore = new Date(currentYear, currentMonth + 1, 1).toISOString();
+
+  try {
+    // 1. Fetch current month for daily distribution
+    const data = await api(`expenses?dated_after=${dateAfter}&dated_before=${dateBefore}&limit=999`);
+    const expenses = data.expenses || [];
+    const userId = state.currentUser?.id;
+    const currency = state.currentUser?.default_currency || 'INR';
+
+    const dailyTotals = new Array(daysInMonth).fill(0);
+    let totalSpent = 0;
+    let weekendSpent = 0;
+    let weekdaySpent = 0;
+    let maxDaily = 0;
+    let maxDayIdx = 0;
+
+    expenses.forEach(exp => {
+      if (exp.deleted_at || exp.payment || exp.creation_method === 'payment') return;
+      if (/^settle\s+all\s+balances$/i.test(exp.description)) return;
+
+      const userShare = (exp.users || []).find(u => u.user_id === userId || u.user?.id === userId);
+      if (!userShare) return;
+
+      const owed = parseFloat(userShare.owed_share || 0);
+      if (owed <= 0) return;
+
+      const expDate = new Date(exp.date);
+      const day = expDate.getDate();
+      const dayIdx = day - 1;
+      
+      if (dayIdx >= 0 && dayIdx < daysInMonth) {
+        dailyTotals[dayIdx] += owed;
+        totalSpent += owed;
+        
+        const dayOfWeek = expDate.getDay(); // 0=Sun, 6=Sat
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          weekendSpent += owed;
+        } else {
+          weekdaySpent += owed;
+        }
+
+        if (dailyTotals[dayIdx] > maxDaily) {
+          maxDaily = dailyTotals[dayIdx];
+          maxDayIdx = dayIdx;
+        }
+      }
+    });
+
+    const avgDaily = totalSpent / daysInMonth;
+    
+    // Render the analysis top section
+    renderAnalysis(dailyTotals, totalSpent, avgDaily, maxDaily, maxDayIdx + 1, weekendSpent, weekdaySpent, currency);
+
+    // 2. Load Trends (reusing logic but pointing to new container)
+    fetchTrendsData('analysis-trends-chart');
+
+  } catch (err) {
+    content.innerHTML = '<div class="empty-state">Failed to load analysis</div>';
+    console.error(err);
+  }
+}
+
+function renderAnalysis(dailyTotals, totalSpent, avgDaily, maxDaily, maxDay, weekendSpent, weekdaySpent, currency) {
+  const container = document.getElementById('analysis-content');
+  
+  const barsHtml = dailyTotals.map((amt, idx) => {
+    const heightPct = maxDaily > 0 ? (amt / maxDaily * 100).toFixed(1) : 0;
+    const day = idx + 1;
+    return `
+      <div class="analysis-bar-wrapper">
+        <div class="analysis-bar-track">
+          <div class="analysis-bar-fill" style="height: 0%" data-height="${heightPct}%">
+            ${amt > 0 && heightPct > 20 ? `<span class="analysis-bar-val">${Math.round(amt)}</span>` : ''}
+          </div>
+        </div>
+        <span class="analysis-bar-label">${day}</span>
+      </div>
+    `;
+  }).join('');
+
+  const weekendPct = totalSpent > 0 ? Math.round((weekendSpent / totalSpent) * 100) : 0;
+
+  container.innerHTML = `
+    <div class="report-card glass hero-analysis">
+      <div class="analysis-hero-main">
+        <span class="analysis-hero-label">Total Spent (${MONTH_NAMES[new Date().getMonth()]})</span>
+        <span class="analysis-hero-amount">${currency} ${totalSpent.toLocaleString()}</span>
+      </div>
+      <div class="analysis-hero-grid">
+        <div class="analysis-stat">
+          <span class="stat-label">Daily Average</span>
+          <span class="stat-value">${currency} ${Math.round(avgDaily)}</span>
+        </div>
+        <div class="analysis-stat">
+          <span class="stat-label">Peak Spending</span>
+          <span class="stat-value">${currency} ${Math.round(maxDaily)}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="report-card glass" style="margin-top: 20px;">
+      <h4 class="card-title-sm">Daily Distribution</h4>
+      <div class="analysis-chart-scroll">
+        <div class="analysis-bars-container">
+          ${barsHtml}
+        </div>
+      </div>
+    </div>
+
+    <div class="analysis-grid-stats" style="margin-top: 20px;">
+      <div class="report-card glass stat-card">
+        <span class="stat-label">Weekend Spend</span>
+        <span class="stat-value">${weekendPct}%</span>
+        <div class="stat-progress-bg">
+          <div class="stat-progress-fill" style="width: ${weekendPct}%"></div>
+        </div>
+      </div>
+      <div class="report-card glass stat-card">
+        <span class="stat-label">Most Expensive</span>
+        <span class="stat-value">Day ${maxDay}</span>
+        <span class="stat-hint">${currency} ${Math.round(maxDaily)} spent</span>
+      </div>
+    </div>
+  `;
+
+  // Animate bars
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      container.querySelectorAll('.analysis-bar-fill').forEach(bar => {
+        bar.style.height = bar.dataset.height;
+      });
+    }, 50);
+  });
+}
+
+async function fetchTrendsData(targetId = 'trends-chart') {
+  const container = document.getElementById(targetId);
+  if (!container) return;
   container.innerHTML = '<div class="usage-loading"><span class="spinner"></span></div>';
 
   const now = new Date();
@@ -1137,15 +1286,15 @@ async function fetchTrendsData() {
 
     const subcategoriesData = Object.values(subcatMap).sort((a, b) => b.total - a.total);
 
-    renderTrends(subcategoriesData, monthLabels, currency);
+    renderTrends(subcategoriesData, monthLabels, currency, targetId);
   } catch (err) {
     container.innerHTML = '<div class="empty-state" style="width:100%;">Failed to load trends</div>';
     console.error(err);
   }
 }
 
-function renderTrends(subcategoriesData, monthLabels, currency) {
-  const container = document.getElementById('trends-chart');
+function renderTrends(subcategoriesData, monthLabels, currency, targetId = 'trends-chart') {
+  const container = document.getElementById(targetId);
 
   if (subcategoriesData.length === 0) {
     container.innerHTML = `

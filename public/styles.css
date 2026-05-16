@@ -1150,6 +1150,170 @@ body::before {
   gap: 4px;
 }
 
+/* ─── Analysis Screen Styles ─── */
+
+.hero-analysis {
+  background: linear-gradient(135deg, rgba(91, 197, 167, 0.15), rgba(10, 10, 15, 0.4));
+  border: 1px solid rgba(91, 197, 167, 0.3);
+}
+
+.analysis-hero-main {
+  margin-bottom: 24px;
+}
+
+.analysis-hero-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.analysis-hero-amount {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.5px;
+}
+
+.analysis-hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.analysis-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-hint);
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.card-title-sm {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.analysis-chart-scroll {
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin: 0 -8px;
+}
+
+.analysis-bars-container {
+  display: flex;
+  align-items: flex-end;
+  height: 140px;
+  gap: 6px;
+  padding: 0 8px;
+  min-width: max-content;
+}
+
+.analysis-bar-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 24px;
+}
+
+.analysis-bar-track {
+  width: 100%;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.analysis-bar-fill {
+  width: 100%;
+  background: linear-gradient(to top, var(--green), #88d4be);
+  border-radius: 4px;
+  transition: height 1s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.analysis-bar-val {
+  position: absolute;
+  top: 4px;
+  font-size: 8px;
+  font-weight: 700;
+  color: #000;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+}
+
+.analysis-bar-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-hint);
+}
+
+.analysis-grid-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.stat-card {
+  padding: 16px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-progress-bg {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.stat-progress-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 2px;
+}
+
+.stat-hint {
+  font-size: 11px;
+  color: var(--text-hint);
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 16px;
+  padding-left: 4px;
+}
+
 .trend-mini-bar-wrapper {
   flex: 1;
   display: flex;
