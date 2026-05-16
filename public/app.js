@@ -265,7 +265,12 @@ function populateUI() {
   });
 
   // Friends list
-  renderFriends(state.friends);
+  const allPeople = [
+    { ...user, first_name: 'You', last_name: '', isCurrentUser: true },
+    ...state.friends
+  ];
+  state.selectedFriends.add(user.id);
+  renderFriends(allPeople);
 
   // Paid-by dropdown
   const paidBySelect = document.getElementById('paid-by');
@@ -333,16 +338,19 @@ function renderFriends(friends) {
   }
 
   container.innerHTML = friends.map((f, i) => {
-    const name = `${f.first_name} ${f.last_name || ''}`.trim();
-    const initial = (f.first_name || '?')[0];
-    const color = AVATAR_COLORS[i % AVATAR_COLORS.length];
+    const isMe = f.isCurrentUser || f.id === state.currentUser?.id;
+    const name = isMe ? 'You' : `${f.first_name} ${f.last_name || ''}`.trim();
+    const initial = isMe ? (state.currentUser?.first_name || 'Y')[0] : (f.first_name || '?')[0];
+    const color = isMe ? 'linear-gradient(135deg, #5bc5a7, #3a9d82)' : AVATAR_COLORS[i % AVATAR_COLORS.length];
     const hasImage = f.picture && f.picture.medium && !f.picture.medium.includes('default');
     const avatarContent = hasImage
       ? `<img src="${f.picture.medium}" alt="${initial}">`
       : initial;
 
+    const isSelected = state.selectedFriends.has(f.id);
+
     return `
-      <div class="friend-item" data-id="${f.id}" onclick="toggleFriend(${f.id})">
+      <div class="friend-item ${isSelected ? 'selected' : ''}" data-id="${f.id}" onclick="toggleFriend(${f.id})">
         <div class="friend-avatar" style="background: ${color}">${avatarContent}</div>
         <span class="friend-name">${name}</span>
         <div class="friend-check"></div>
@@ -376,32 +384,32 @@ function onGroupChange() {
 
   if (groupId === 0) {
     // Show all friends
-    renderFriends(state.friends);
+    const allPeople = [
+      { ...state.currentUser, first_name: 'You', last_name: '', isCurrentUser: true },
+      ...state.friends
+    ];
     state.selectedFriends.clear();
+    state.selectedFriends.add(state.currentUser.id);
+    renderFriends(allPeople);
   } else {
     // Show only group members
     const group = state.groups.find((g) => g.id === groupId);
     if (group && group.members) {
-      const memberIds = group.members
-        .filter((m) => m.id !== state.currentUser.id)
-        .map((m) => m.id);
+      const memberIds = group.members.map((m) => m.id);
 
-      const groupFriends = group.members
-        .filter((m) => m.id !== state.currentUser.id)
-        .map((m) => ({
-          id: m.id,
-          first_name: m.first_name,
-          last_name: m.last_name,
-          picture: m.picture,
-        }));
+      const groupPeople = group.members.map((m) => ({
+        id: m.id,
+        first_name: m.id === state.currentUser.id ? 'You' : m.first_name,
+        last_name: m.id === state.currentUser.id ? '' : m.last_name,
+        picture: m.picture,
+        isCurrentUser: m.id === state.currentUser.id
+      }));
 
-      renderFriends(groupFriends);
+      // Sort "You" to the top
+      groupPeople.sort((a, b) => (a.isCurrentUser ? -1 : b.isCurrentUser ? 1 : 0));
+
       state.selectedFriends = new Set(memberIds);
-
-      // Auto-select all
-      document.querySelectorAll('.friend-item').forEach((el) => {
-        el.classList.add('selected');
-      });
+      renderFriends(groupPeople);
     }
   }
 
@@ -450,14 +458,8 @@ function renderCustomSplit() {
     labelHint = '<span class="split-hint">Equal split + adjustments</span>';
   }
 
-  // Include current user
-  const allPeople = [
-    { id: state.currentUser.id, first_name: 'You', last_name: '' },
-    ...selected,
-  ];
-
   let html = labelHint ? `<div class="split-label-hint">${labelHint}</div>` : '';
-  html += allPeople.map((f) => {
+  html += selected.map((f) => {
     const name = `${f.first_name} ${f.last_name || ''}`.trim();
     return `
       <div class="split-row">
@@ -495,8 +497,21 @@ async function createExpense(event) {
 
   try {
     const selectedIds = [...state.selectedFriends];
-    const allUserIds = [state.currentUser.id, ...selectedIds];
-    const totalPeople = allUserIds.length;
+    if (selectedIds.length === 0) {
+      showToast('Please select at least one person to split with', 'error');
+      setButtonLoading(btn, false);
+      return;
+    }
+
+    // Splitwise requires everyone in the expense to be in the users list.
+    // This includes everyone who owes money AND the person who paid.
+    const peopleInSplit = selectedIds;
+    const allUserIds = [...peopleInSplit];
+    if (!allUserIds.includes(paidBy)) {
+      allUserIds.push(paidBy);
+    }
+
+    const totalPeopleInSplit = peopleInSplit.length;
 
     // Build expense data
     const expenseData = {
@@ -511,24 +526,22 @@ async function createExpense(event) {
 
     // Build user shares
     if (state.splitType === 'equal') {
-      const share = (amount / totalPeople).toFixed(2);
-      // Adjust rounding for first user
-      const remainder = (amount - share * totalPeople).toFixed(2);
+      const share = (amount / totalPeopleInSplit).toFixed(2);
+      // Adjust rounding for first user in the split
+      const remainder = (amount - share * totalPeopleInSplit).toFixed(2);
       const firstShare = (parseFloat(share) + parseFloat(remainder)).toFixed(2);
 
       allUserIds.forEach((uid, i) => {
-        const idx = i;
-        const userShare = i === 0 ? firstShare : share;
-        expenseData[`users__${idx}__user_id`] = uid;
-        if (uid === paidBy) {
-          expenseData[`users__${idx}__paid_share`] = amount.toFixed(2);
-        } else {
-          expenseData[`users__${idx}__paid_share`] = '0.00';
-        }
-        expenseData[`users__${idx}__owed_share`] = userShare;
+        const isInSplit = peopleInSplit.includes(uid);
+        const userOwedShare = isInSplit
+          ? (uid === peopleInSplit[0] ? firstShare : share)
+          : '0.00';
+
+        expenseData[`users__${i}__user_id`] = uid;
+        expenseData[`users__${i}__paid_share`] = uid === paidBy ? amount.toFixed(2) : '0.00';
+        expenseData[`users__${i}__owed_share`] = userOwedShare;
       });
     } else if (state.splitType === 'exact') {
-      const inputs = document.querySelectorAll('.split-input');
       allUserIds.forEach((uid, i) => {
         const input = document.querySelector(`.split-input[data-user-id="${uid}"]`);
         const owedShare = input ? parseFloat(input.value || 0).toFixed(2) : '0.00';
@@ -549,7 +562,7 @@ async function createExpense(event) {
       // Calculate total shares
       let totalShares = 0;
       const sharesMap = {};
-      allUserIds.forEach((uid) => {
+      peopleInSplit.forEach((uid) => {
         const input = document.querySelector(`.split-input[data-user-id="${uid}"]`);
         const shares = parseFloat(input?.value || 1);
         sharesMap[uid] = shares;
@@ -558,13 +571,15 @@ async function createExpense(event) {
 
       let allocated = 0;
       allUserIds.forEach((uid, i) => {
-        let owedShare;
-        if (i === allUserIds.length - 1) {
-          // Last person gets remainder to avoid rounding issues
-          owedShare = (amount - allocated).toFixed(2);
-        } else {
-          owedShare = ((sharesMap[uid] / totalShares) * amount).toFixed(2);
-          allocated += parseFloat(owedShare);
+        let owedShare = '0.00';
+        if (peopleInSplit.includes(uid)) {
+          const splitIdx = peopleInSplit.indexOf(uid);
+          if (splitIdx === peopleInSplit.length - 1) {
+            owedShare = (amount - allocated).toFixed(2);
+          } else {
+            owedShare = ((sharesMap[uid] / totalShares) * amount).toFixed(2);
+            allocated += parseFloat(owedShare);
+          }
         }
         expenseData[`users__${i}__user_id`] = uid;
         expenseData[`users__${i}__paid_share`] = uid === paidBy ? amount.toFixed(2) : '0.00';
@@ -572,26 +587,27 @@ async function createExpense(event) {
       });
     } else if (state.splitType === 'adjustment') {
       // Equal split + per-person adjustments
-      const baseShare = amount / totalPeople;
+      const baseShare = amount / totalPeopleInSplit;
       let adjustedShares = {};
-      let totalAdjustment = 0;
 
-      allUserIds.forEach((uid) => {
+      peopleInSplit.forEach((uid) => {
         const input = document.querySelector(`.split-input[data-user-id="${uid}"]`);
         const adj = parseFloat(input?.value || 0);
         adjustedShares[uid] = baseShare + adj;
-        totalAdjustment += adj;
       });
 
-      // Normalize so total = amount (distribute any rounding/adjustment mismatch)
+      // Normalize so total = amount
       let allocated2 = 0;
       allUserIds.forEach((uid, i) => {
-        let owedShare;
-        if (i === allUserIds.length - 1) {
-          owedShare = (amount - allocated2).toFixed(2);
-        } else {
-          owedShare = Math.max(0, adjustedShares[uid]).toFixed(2);
-          allocated2 += parseFloat(owedShare);
+        let owedShare = '0.00';
+        if (peopleInSplit.includes(uid)) {
+          const splitIdx = peopleInSplit.indexOf(uid);
+          if (splitIdx === peopleInSplit.length - 1) {
+            owedShare = (amount - allocated2).toFixed(2);
+          } else {
+            owedShare = Math.max(0, adjustedShares[uid]).toFixed(2);
+            allocated2 += parseFloat(owedShare);
+          }
         }
         expenseData[`users__${i}__user_id`] = uid;
         expenseData[`users__${i}__paid_share`] = uid === paidBy ? amount.toFixed(2) : '0.00';
@@ -621,20 +637,30 @@ async function createExpense(event) {
 
 // ─── Helpers ──────────────────────────────
 function getSelectedFriendObjects() {
-  const allFriends = [...state.friends];
-  // Also check group members
+  const allPeople = [
+    { ...state.currentUser, first_name: 'You', last_name: '', isCurrentUser: true },
+    ...state.friends
+  ];
+
+  // Also check group members for those not in friends list
   const groupId = parseInt(document.getElementById('group').value, 10);
   if (groupId !== 0) {
     const group = state.groups.find((g) => g.id === groupId);
     if (group && group.members) {
       group.members.forEach((m) => {
-        if (!allFriends.find((f) => f.id === m.id)) {
-          allFriends.push(m);
+        if (!allPeople.find((p) => p.id === m.id)) {
+          allPeople.push({
+            ...m,
+            first_name: m.id === state.currentUser.id ? 'You' : m.first_name,
+            last_name: m.id === state.currentUser.id ? '' : m.last_name,
+            isCurrentUser: m.id === state.currentUser.id
+          });
         }
       });
     }
   }
-  return allFriends.filter((f) => state.selectedFriends.has(f.id));
+
+  return allPeople.filter((p) => state.selectedFriends.has(p.id));
 }
 
 function showScreen(screenId) {
@@ -709,7 +735,13 @@ function resetForm() {
   document.getElementById('notes').value = '';
   document.getElementById('date').value = new Date().toISOString().split('T')[0];
   state.selectedFriends.clear();
-  document.querySelectorAll('.friend-item').forEach((el) => el.classList.remove('selected'));
+  if (state.currentUser) {
+    state.selectedFriends.add(state.currentUser.id);
+  }
+  document.querySelectorAll('.friend-item').forEach((el) => {
+    const fid = parseInt(el.dataset.id, 10);
+    el.classList.toggle('selected', state.selectedFriends.has(fid));
+  });
   setSplitType('equal');
 
   // Scroll to top
@@ -793,7 +825,7 @@ async function fetchUsageData() {
   // Date range: from the last second of the previous month to the 1st of the next month
   const prevMonthLastDate = new Date(year, month, 0);
   const dateAfter = `${prevMonthLastDate.getFullYear()}-${String(prevMonthLastDate.getMonth() + 1).padStart(2, '0')}-${String(prevMonthLastDate.getDate()).padStart(2, '0')}T23:59:59Z`;
-  
+
   const nextMonthDate = new Date(year, month + 1, 1);
   const dateBefore = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}-01T00:00:00Z`;
 
@@ -912,7 +944,7 @@ function renderUsageReport({ total, currency, categories, expenseCount, uncatego
     let subcatsHtml = '';
     if (subcats.length > 0) {
       subcatsHtml = `
-        <div class="report-subcats" style="border-left-color: ${color}">
+        <div class="nreport-subcats" style="border-left-color: ${color}">
           ${subcats.map(sub => {
         const subPct = cat.amount > 0 ? ((sub.amount / cat.amount) * 100).toFixed(1) : 0;
         return `
