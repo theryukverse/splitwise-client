@@ -211,11 +211,8 @@ app.get('/api/expenses', async (req, res) => {
     const headers = getAuthHeader(req);
     if (!headers) return res.status(401).json({ error: 'Authentication required' });
 
-    const params = new URLSearchParams();
-    if (req.query.dated_after) params.append('dated_after', req.query.dated_after);
-    if (req.query.dated_before) params.append('dated_before', req.query.dated_before);
-    if (req.query.limit) params.append('limit', req.query.limit);
-
+    // Forward all query parameters to Splitwise
+    const params = new URLSearchParams(req.query);
     const response = await fetch(`${SPLITWISE_API}/get_expenses?${params}`, { headers });
     const data = await response.json();
     res.json(data);

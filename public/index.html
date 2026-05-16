@@ -184,28 +184,7 @@
       </main>
 
 
-      <!-- Bottom Nav -->
-      <nav class="bottom-nav" id="bottom-nav">
-        <button class="nav-tab active" data-tab="screen-main" onclick="showTab('screen-main')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <path d="M12 20V10M18 20V4M6 20v-4"/>
-          </svg>
-          <span>Expense</span>
-        </button>
-        <button class="nav-tab" data-tab="screen-usage" onclick="showTab('screen-usage')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <path d="M21.21 15.89A10 10 0 118 2.83"/>
-            <path d="M22 12A10 10 0 0012 2v10z"/>
-          </svg>
-          <span>Usage</span>
-        </button>
-        <button class="nav-tab" data-tab="screen-trends" onclick="showTab('screen-trends')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-          </svg>
-          <span>Trends</span>
-        </button>
-      </nav>
+
     </div>
 
     <!-- ─── Usage Screen ─── -->
@@ -243,28 +222,7 @@
         </div>
       </main>
 
-      <!-- Bottom Nav (duplicated for this screen) -->
-      <nav class="bottom-nav">
-        <button class="nav-tab" data-tab="screen-main" onclick="showTab('screen-main')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <path d="M12 20V10M18 20V4M6 20v-4"/>
-          </svg>
-          <span>Expense</span>
-        </button>
-        <button class="nav-tab active" data-tab="screen-usage" onclick="showTab('screen-usage')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <path d="M21.21 15.89A10 10 0 118 2.83"/>
-            <path d="M22 12A10 10 0 0012 2v10z"/>
-          </svg>
-          <span>Usage</span>
-        </button>
-        <button class="nav-tab" data-tab="screen-trends" onclick="showTab('screen-trends')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-          </svg>
-          <span>Trends</span>
-        </button>
-      </nav>
+
     </div>
 
     <!-- ─── Trends Screen ─── -->
@@ -293,29 +251,90 @@
         </div>
       </main>
 
-      <!-- Bottom Nav (duplicated for this screen) -->
-      <nav class="bottom-nav">
-        <button class="nav-tab" data-tab="screen-main" onclick="showTab('screen-main')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <path d="M12 20V10M18 20V4M6 20v-4"/>
-          </svg>
-          <span>Expense</span>
-        </button>
-        <button class="nav-tab" data-tab="screen-usage" onclick="showTab('screen-usage')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <path d="M21.21 15.89A10 10 0 118 2.83"/>
-            <path d="M22 12A10 10 0 0012 2v10z"/>
-          </svg>
-          <span>Usage</span>
-        </button>
-        <button class="nav-tab active" data-tab="screen-trends" onclick="showTab('screen-trends')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-          </svg>
-          <span>Trends</span>
-        </button>
-      </nav>
+
     </div>
+
+    <!-- ─── Balances Screen ─── -->
+    <div id="screen-balances" class="screen">
+      <header class="header">
+        <div class="header-left">
+          <div class="avatar" id="balances-user-avatar"></div>
+          <span class="header-title">Balances</span>
+        </div>
+        <button class="btn-icon" onclick="logout()" title="Disconnect">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
+        </button>
+      </header>
+      <main class="main-content">
+        <div id="balances-list" class="balances-list">
+          <div class="usage-loading"><span class="spinner"></span></div>
+        </div>
+      </main>
+    </div>
+
+    <!-- ─── Activity Screen ─── -->
+    <div id="screen-activity" class="screen">
+      <header class="header">
+        <div class="header-left">
+          <div class="avatar" id="activity-user-avatar"></div>
+          <span class="header-title">Recent Activity</span>
+        </div>
+        <button class="btn-icon" onclick="logout()" title="Disconnect">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
+        </button>
+      </header>
+      <main class="main-content" style="padding-top: calc(85px + env(safe-area-inset-top));">
+        <div class="search-container">
+          <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="activity-search" class="input search-input" placeholder="Search expenses..." oninput="filterActivity()">
+        </div>
+        <div id="activity-list" class="activity-list">
+          <div class="usage-loading"><span class="spinner"></span></div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Central Navigation -->
+    <nav class="bottom-nav hidden" id="main-nav">
+      <button class="nav-tab active" data-tab="screen-main" onclick="showTab('screen-main')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M12 20V10M18 20V4M6 20v-4"/>
+        </svg>
+        <span>Expense</span>
+      </button>
+      <button class="nav-tab" data-tab="screen-balances" onclick="showTab('screen-balances')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        <span>Balances</span>
+      </button>
+      <button class="nav-tab" data-tab="screen-activity" onclick="showTab('screen-activity')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        <span>Activity</span>
+      </button>
+      <button class="nav-tab" data-tab="screen-usage" onclick="showTab('screen-usage')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M21.21 15.89A10 10 0 118 2.83"/>
+          <path d="M22 12A10 10 0 0012 2v10z"/>
+        </svg>
+        <span>Usage</span>
+      </button>
+      <button class="nav-tab" data-tab="screen-trends" onclick="showTab('screen-trends')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+        </svg>
+        <span>Trends</span>
+      </button>
+    </nav>
 
     <!-- Toast -->
     <div id="toast" class="toast hidden"></div>

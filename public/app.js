@@ -14,6 +14,8 @@ let state = {
   categories: [],
   selectedFriends: new Set(),
   splitType: 'equal',
+  activityOffset: 0,
+  isLoadingMore: false,
 };
 
 // ─── Init ─────────────────────────────────
@@ -666,6 +668,15 @@ function getSelectedFriendObjects() {
 function showScreen(screenId) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
   document.getElementById(screenId).classList.add('active');
+  
+  const mainNav = document.getElementById('main-nav');
+  if (mainNav) {
+    if (screenId === 'screen-setup') {
+      mainNav.classList.add('hidden');
+    } else {
+      mainNav.classList.remove('hidden');
+    }
+  }
 }
 
 function setButtonLoading(btn, loading) {
@@ -757,22 +768,22 @@ function showTab(screenId) {
     tab.classList.toggle('active', tab.dataset.tab === screenId);
   });
 
-  // Load usage data when switching to usage tab
-  if (screenId === 'screen-usage' && state.currentUser) {
-    // Set avatar on usage screen
-    const user = state.currentUser;
-    const avatar = document.getElementById('usage-user-avatar');
-    const initials = `${(user.first_name || '')[0] || ''}${(user.last_name || '')[0] || ''}`;
-    avatar.textContent = initials;
+  if (!state.currentUser) return;
+  const user = state.currentUser;
+  const initials = `${(user.first_name || '')[0] || ''}${(user.last_name || '')[0] || ''}`;
 
+  if (screenId === 'screen-usage') {
+    document.getElementById('usage-user-avatar').textContent = initials;
     fetchUsageData();
-  } else if (screenId === 'screen-trends' && state.currentUser) {
-    const user = state.currentUser;
-    const avatar = document.getElementById('trends-user-avatar');
-    const initials = `${(user.first_name || '')[0] || ''}${(user.last_name || '')[0] || ''}`;
-    avatar.textContent = initials;
-
+  } else if (screenId === 'screen-trends') {
+    document.getElementById('trends-user-avatar').textContent = initials;
     fetchTrendsData();
+  } else if (screenId === 'screen-balances') {
+    document.getElementById('balances-user-avatar').textContent = initials;
+    fetchBalancesData();
+  } else if (screenId === 'screen-activity') {
+    document.getElementById('activity-user-avatar').textContent = initials;
+    fetchActivityData();
   }
 }
 
@@ -1187,4 +1198,328 @@ function renderTrends(subcategoriesData, monthLabels, currency) {
       });
     }, 50);
   });
+}
+
+// ─── Balances Report ───────────────────────
+
+function fetchBalancesData() {
+  const container = document.getElementById('balances-list');
+  
+  if (!state.friends || state.friends.length === 0) {
+    container.innerHTML = '<div class="empty-state">No friends found.</div>';
+    return;
+  }
+
+  const balances = [];
+  state.friends.forEach(f => {
+    if (f.balance && f.balance.length > 0) {
+      const amount = parseFloat(f.balance[0].amount);
+      if (amount !== 0) {
+        balances.push({
+          id: f.id,
+          name: `${f.first_name} ${f.last_name || ''}`.trim(),
+          amount: amount,
+          currency: f.balance[0].currency_code
+        });
+      }
+    }
+  });
+
+  balances.sort((a, b) => b.amount - a.amount);
+
+  if (balances.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        <p>You are all settled up!</p>
+      </div>
+    `;
+    return;
+  }
+
+  const html = balances.map(b => {
+    const isOwed = b.amount > 0;
+    const color = isOwed ? 'var(--green)' : 'var(--red)';
+    const text = isOwed ? 'owes you' : 'you owe';
+    const amountStr = Math.abs(b.amount).toFixed(2);
+    return `
+      <div class="balance-card">
+        <div class="balance-info">
+          <div class="balance-name">${b.name}</div>
+          <div class="balance-amount" style="color: ${color}">
+            <span class="balance-label">${text}</span>
+            <span class="balance-value">${b.currency} ${amountStr}</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="confirmSettleUp(${b.id}, '${b.name.replace(/'/g, "\\'")}', ${b.amount}, '${b.currency}')">
+          Settle Up
+        </button>
+      </div>
+    `;
+  }).join('');
+
+  container.innerHTML = `<div class="balances-container">${html}</div>`;
+}
+
+function confirmSettleUp(friendId, friendName, amount, currency) {
+  if (confirm(`Are you sure you want to settle up with ${friendName}? This will record a cash payment of ${currency} ${Math.abs(amount).toFixed(2)}.`)) {
+    executeSettleUp(friendId, friendName, amount, currency);
+  }
+}
+
+async function executeSettleUp(friendId, friendName, amount, currency) {
+  try {
+    const myId = state.currentUser.id;
+    const isOwed = amount > 0;
+    const absAmount = Math.abs(amount).toFixed(2);
+    
+    // If they owe me (amount > 0), they are paying me: Payer = friend, Payee = me
+    // If I owe them (amount < 0), I am paying them: Payer = me, Payee = friend
+    
+    const payerId = isOwed ? friendId : myId;
+    const payeeId = isOwed ? myId : friendId;
+
+    const payload = {
+      cost: absAmount,
+      description: 'Payment',
+      payment: true,
+      currency_code: currency,
+      users: [
+        {
+          user_id: payerId,
+          paid_share: absAmount,
+          owed_share: '0.0'
+        },
+        {
+          user_id: payeeId,
+          paid_share: '0.0',
+          owed_share: absAmount
+        }
+      ]
+    };
+
+    const res = await api('expenses', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    if (res.errors && Object.keys(res.errors).length > 0) {
+      throw new Error(JSON.stringify(res.errors));
+    }
+
+    showToast(`Settled up with ${friendName}!`);
+    
+    // Refresh friends data silently and then refresh balances view
+    const data = await api('friends');
+    state.friends = data.friends || [];
+    fetchBalancesData();
+    
+  } catch (err) {
+    showToast('Failed to settle up.', 'error');
+    console.error(err);
+  }
+}
+
+// ─── Activity Report ───────────────────────
+
+let currentActivityData = [];
+let activityObserver = null;
+let activityHasMore = true;
+
+async function fetchActivityData() {
+  const container = document.getElementById('activity-list');
+  container.innerHTML = '<div class="usage-loading"><span class="spinner"></span></div>';
+  document.getElementById('activity-search').value = '';
+  
+  state.isLoadingMore = false;
+  currentActivityData = [];
+  activityHasMore = true;
+
+  try {
+    const data = await api('expenses?limit=100');
+    currentActivityData = (data.expenses || []).filter(e => !e.deleted_at);
+    activityHasMore = (data.expenses || []).length >= 100;
+    renderActivity(currentActivityData);
+    if (activityHasMore) updateActivityFooter();
+  } catch (err) {
+    container.innerHTML = '<div class="empty-state">Failed to load activity</div>';
+    console.error(err);
+  }
+}
+
+async function loadMoreActivity() {
+  if (state.isLoadingMore || !activityHasMore) return;
+  
+  state.isLoadingMore = true;
+  const container = document.getElementById('activity-list');
+  const sentinel = document.getElementById('activity-sentinel');
+  if (sentinel) sentinel.innerHTML = '<span class="spinner"></span>';
+  
+  const lastExpense = currentActivityData[currentActivityData.length - 1];
+  if (!lastExpense || !lastExpense.date) {
+    activityHasMore = false;
+    if (sentinel) sentinel.remove();
+    state.isLoadingMore = false;
+    return;
+  }
+
+  try {
+    const data = await api(`expenses?limit=100&dated_before=${lastExpense.date}`);
+    const expensesBatch = data.expenses || [];
+    const filteredExpenses = expensesBatch.filter(e => !e.deleted_at);
+    
+    // Deduplicate by ID
+    const existingIds = new Set(currentActivityData.map(e => e.id));
+    const newExpenses = filteredExpenses.filter(e => !existingIds.has(e.id));
+
+    if (newExpenses.length > 0) {
+      currentActivityData = [...currentActivityData, ...newExpenses];
+      
+      const userId = state.currentUser?.id;
+      let listContainer = container.querySelector('.activity-container');
+      
+      // Filter new items against search term
+      const term = document.getElementById('activity-search').value.toLowerCase();
+      const displayExpenses = term ? newExpenses.filter(exp => matchesSearch(exp, term)) : newExpenses;
+      
+      if (displayExpenses.length > 0) {
+        const newHtml = displayExpenses.map(exp => createActivityCardHtml(exp, userId)).join('');
+        
+        if (!listContainer) {
+          // Recreate container if it was removed by "No matching activity" empty state
+          container.innerHTML = `<div class="activity-container">${newHtml}</div>`;
+          updateActivityFooter();
+        } else {
+          listContainer.insertAdjacentHTML('beforeend', newHtml);
+        }
+      }
+    }
+    
+    // Check original batch length to decide if there are more
+    if (expensesBatch.length < 100) {
+      activityHasMore = false;
+    }
+    
+    // Always update footer state (e.g. show Load More or No More)
+    updateActivityFooter();
+  } catch (err) {
+    console.error('Failed to load more activity:', err);
+    showToast('Failed to load more activity', 'error');
+    const sentinel = document.getElementById('activity-sentinel');
+    if (sentinel) sentinel.innerHTML = '<button class="btn btn-secondary btn-sm" onclick="loadMoreActivity()">Retry loading next 100 expenses</button>';
+  } finally {
+    state.isLoadingMore = false;
+  }
+}
+
+function updateActivityFooter() {
+  const container = document.getElementById('activity-list');
+  let sentinel = document.getElementById('activity-sentinel');
+  
+  if (!sentinel) {
+    sentinel = document.createElement('div');
+    sentinel.id = 'activity-sentinel';
+    sentinel.className = 'activity-sentinel';
+    container.appendChild(sentinel);
+  }
+
+  if (activityHasMore) {
+    sentinel.innerHTML = '<button class="btn btn-secondary btn-sm" onclick="loadMoreActivity()">Load next 100 expenses</button>';
+  } else if (currentActivityData.length > 0) {
+    sentinel.innerHTML = '<div class="empty-state">No more expenses to load</div>';
+  } else {
+    sentinel.innerHTML = '';
+  }
+}
+
+function renderActivity(expenses) {
+  const container = document.getElementById('activity-list');
+
+  if (!expenses || expenses.length === 0) {
+    container.innerHTML = '<div class="empty-state">No matching activity</div>';
+    // If searching, we still want to allow loading more from server
+    updateActivityFooter();
+    return;
+  }
+
+  const userId = state.currentUser?.id;
+  const html = expenses.map(exp => createActivityCardHtml(exp, userId)).join('');
+
+  container.innerHTML = `<div class="activity-container">${html}</div>`;
+  
+  // Ensure footer is at the end
+  updateActivityFooter();
+}
+
+function createActivityCardHtml(exp, userId) {
+  if (exp.deleted_at) return '';
+  
+  let actionText = '';
+  let actionColor = 'var(--text)';
+  
+  if (exp.payment) {
+    actionText = 'Payment';
+    actionColor = 'var(--text-dim)';
+  } else {
+    const userShare = (exp.users || []).find((u) => u.user_id === userId || u.user?.id === userId);
+    const paid = parseFloat(userShare?.paid_share || 0);
+    const owed = parseFloat(userShare?.owed_share || 0);
+    
+    if (paid > 0 && owed > 0 && paid !== owed) {
+      actionText = `You paid ${exp.currency_code} ${paid.toFixed(2)}`;
+    } else if (paid > 0 && owed === 0) {
+      actionText = `You lent ${exp.currency_code} ${paid.toFixed(2)}`;
+      actionColor = 'var(--green)';
+    } else if (paid === 0 && owed > 0) {
+      actionText = `You borrowed ${exp.currency_code} ${owed.toFixed(2)}`;
+      actionColor = 'var(--red)';
+    } else if (paid === owed && paid > 0) {
+      actionText = `You paid for yourself`;
+      actionColor = 'var(--text-dim)';
+    } else {
+      actionText = 'Not involved';
+      actionColor = 'var(--text-dim)';
+    }
+  }
+
+  const dateStr = new Date(exp.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+  return `
+    <div class="activity-card">
+      <div class="activity-date">
+        <span class="act-day">${dateStr.split(' ')[1]}</span>
+        <span class="act-month">${dateStr.split(' ')[0]}</span>
+      </div>
+      <div class="activity-details">
+        <div class="activity-desc">${exp.description}</div>
+        <div class="activity-group">${exp.group_id ? 'Group Expense' : 'Non-group'}</div>
+      </div>
+      <div class="activity-amount" style="color: ${actionColor}">
+        ${actionText}
+      </div>
+    </div>
+  `;
+}
+
+function filterActivity() {
+  const term = document.getElementById('activity-search').value.toLowerCase();
+  if (!term) {
+    renderActivity(currentActivityData);
+    return;
+  }
+
+  const filtered = currentActivityData.filter(exp => matchesSearch(exp, term));
+  renderActivity(filtered);
+}
+
+function matchesSearch(exp, term) {
+  if (exp.description && exp.description.toLowerCase().includes(term)) return true;
+  if (exp.category && exp.category.name && exp.category.name.toLowerCase().includes(term)) return true;
+  for (let u of (exp.users || [])) {
+    if (u.user && u.user.first_name && u.user.first_name.toLowerCase().includes(term)) return true;
+    if (u.user && u.user.last_name && u.user.last_name.toLowerCase().includes(term)) return true;
+  }
+  return false;
 }
