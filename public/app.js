@@ -766,6 +766,13 @@ function showTab(screenId) {
     avatar.textContent = initials;
 
     fetchUsageData();
+  } else if (screenId === 'screen-trends' && state.currentUser) {
+    const user = state.currentUser;
+    const avatar = document.getElementById('trends-user-avatar');
+    const initials = `${(user.first_name || '')[0] || ''}${(user.last_name || '')[0] || ''}`;
+    avatar.textContent = initials;
+
+    fetchTrendsData();
   }
 }
 
@@ -1042,3 +1049,142 @@ function renderUsageReport({ total, currency, categories, expenseCount, uncatego
   });
 }
 
+// ─── Trends Report ────────────────────────
+
+async function fetchTrendsData() {
+  const container = document.getElementById('trends-chart');
+  container.innerHTML = '<div class="usage-loading"><span class="spinner"></span></div>';
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+
+  // Get date range for the current year
+  const dateAfter = `${currentYear}-01-01T00:00:00Z`;
+  const dateBefore = `${currentYear + 1}-01-01T00:00:00Z`;
+
+  try {
+    const data = await api(`expenses?dated_after=${dateAfter}&dated_before=${dateBefore}&limit=999`);
+    const expenses = data.expenses || [];
+    
+    // Build category lookups
+    const subIdToSubName = {};
+    (state.categories || []).forEach((cat) => {
+      subIdToSubName[cat.id] = cat.name;
+      if (cat.subcategories) {
+        cat.subcategories.forEach((sub) => {
+          subIdToSubName[sub.id] = sub.name;
+        });
+      }
+    });
+
+    // Determine the 12 month buckets for the current year
+    const numBuckets = 12;
+    const monthLabels = [];
+    for (let i = 0; i < numBuckets; i++) {
+      monthLabels.push({
+        month: i,
+        year: currentYear,
+        label: MONTH_NAMES[i].substring(0, 3)
+      });
+    }
+
+    const subcatMap = {}; // name -> { name, total, amounts: [0, ..., 0] (12 zeros) }
+    const userId = state.currentUser?.id;
+    let currency = state.currentUser?.default_currency || 'INR';
+
+    expenses.forEach((exp) => {
+      if (exp.deleted_at) return;
+      if (exp.payment) return;
+      if (exp.creation_method === 'payment') return;
+      if (/^settle\s+all\s+balances$/i.test(exp.description)) return;
+
+      const userShare = (exp.users || []).find((u) => u.user_id === userId || u.user?.id === userId);
+      if (!userShare) return;
+
+      const owed = parseFloat(userShare.owed_share || 0);
+      if (owed <= 0) return;
+
+      currency = exp.currency_code || currency;
+
+      const catId = exp.category?.id || 0;
+      let subName = subIdToSubName[catId] || exp.category?.name || 'Other';
+      
+      const expDate = new Date(exp.date);
+      const m = expDate.getMonth();
+      const y = expDate.getFullYear();
+
+      // Find which bucket this belongs to
+      const bucketIdx = monthLabels.findIndex(md => md.month === m && md.year === y);
+      if (bucketIdx !== -1) {
+        if (!subcatMap[subName]) {
+          subcatMap[subName] = { name: subName, total: 0, amounts: new Array(numBuckets).fill(0) };
+        }
+        subcatMap[subName].amounts[bucketIdx] += owed;
+        subcatMap[subName].total += owed;
+      }
+    });
+
+    const subcategoriesData = Object.values(subcatMap).sort((a, b) => b.total - a.total);
+
+    renderTrends(subcategoriesData, monthLabels, currency);
+  } catch (err) {
+    container.innerHTML = '<div class="empty-state" style="width:100%;">Failed to load trends</div>';
+    console.error(err);
+  }
+}
+
+function renderTrends(subcategoriesData, monthLabels, currency) {
+  const container = document.getElementById('trends-chart');
+
+  if (subcategoriesData.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state" style="width:100%;">
+        <p>No expenses in the last 3 months</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Display top 15 subcategories
+  const topSubcats = subcategoriesData.slice(0, 15);
+
+  const cardsHtml = topSubcats.map((subcat) => {
+    const maxVal = Math.max(...subcat.amounts, 1);
+    
+    const barsHtml = subcat.amounts.map((amt, idx) => {
+      const heightPct = ((amt / maxVal) * 100).toFixed(1);
+      return `
+        <div class="trend-mini-bar-wrapper">
+          <span class="trend-mini-value">${amt > 0 ? Math.round(amt) : ''}</span>
+          <div class="trend-mini-bar-track">
+            <div class="trend-mini-bar-fill" style="height: 0%" data-height="${heightPct}%"></div>
+          </div>
+          <span class="trend-mini-label">${monthLabels[idx].label}</span>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="trend-subcat-card">
+        <div class="trend-subcat-header">
+          <span class="trend-subcat-name">${subcat.name}</span>
+          <span class="trend-subcat-total">${currency} ${subcat.total.toFixed(2)}</span>
+        </div>
+        <div class="trend-mini-bars-container">
+          ${barsHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.innerHTML = cardsHtml;
+
+  // Animate bars
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      container.querySelectorAll('.trend-mini-bar-fill').forEach((bar) => {
+        bar.style.height = bar.dataset.height;
+      });
+    }, 50);
+  });
+}

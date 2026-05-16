@@ -199,6 +199,12 @@
           </svg>
           <span>Usage</span>
         </button>
+        <button class="nav-tab" data-tab="screen-trends" onclick="showTab('screen-trends')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          <span>Trends</span>
+        </button>
       </nav>
     </div>
 
@@ -251,6 +257,62 @@
             <path d="M22 12A10 10 0 0012 2v10z"/>
           </svg>
           <span>Usage</span>
+        </button>
+        <button class="nav-tab" data-tab="screen-trends" onclick="showTab('screen-trends')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          <span>Trends</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- ─── Trends Screen ─── -->
+    <div id="screen-trends" class="screen">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <div class="avatar" id="trends-user-avatar"></div>
+          <span class="header-title">Trends</span>
+        </div>
+        <button class="btn-icon" onclick="logout()" title="Disconnect">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
+        </button>
+      </header>
+
+      <main class="main-content">
+        <div class="report-card glass" style="padding: 16px;">
+          <!-- Chart -->
+          <div id="trends-chart" class="trends-subcat-list">
+            <div class="usage-loading">
+              <span class="spinner"></span>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Bottom Nav (duplicated for this screen) -->
+      <nav class="bottom-nav">
+        <button class="nav-tab" data-tab="screen-main" onclick="showTab('screen-main')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M12 20V10M18 20V4M6 20v-4"/>
+          </svg>
+          <span>Expense</span>
+        </button>
+        <button class="nav-tab" data-tab="screen-usage" onclick="showTab('screen-usage')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M21.21 15.89A10 10 0 118 2.83"/>
+            <path d="M22 12A10 10 0 0012 2v10z"/>
+          </svg>
+          <span>Usage</span>
+        </button>
+        <button class="nav-tab active" data-tab="screen-trends" onclick="showTab('screen-trends')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          <span>Trends</span>
         </button>
       </nav>
     </div>
