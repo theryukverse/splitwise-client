@@ -1192,6 +1192,9 @@ body::before {
 
 @media (min-width: 768px) {
   .setup-container { padding: 48px 24px; }
-  .main-content { padding: 32px 24px; padding-bottom: 24px; }
+  .main-content { 
+    padding: 32px 24px; 
+    padding-top: calc(85px + env(safe-area-inset-top));
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
 }
-
