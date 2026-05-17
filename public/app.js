@@ -1210,50 +1210,117 @@ async function fetchAnalysisData() {
   }
 }
 
+window.selectCalendarDay = function(el, day, amount, currency) {
+  document.querySelectorAll('.calendar-cell').forEach(cell => cell.classList.remove('selected'));
+  if (el) el.classList.add('selected');
+  
+  const detailEl = document.getElementById('calendar-detail');
+  if (!detailEl) return;
+
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const monthName = MONTH_NAMES[currentMonth];
+  
+  if (amount > 0) {
+    detailEl.innerHTML = `
+      <div class="detail-active">
+        <span class="detail-date">${monthName} ${day}</span>
+        <span class="detail-amount">${currency} ${amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} spent</span>
+      </div>
+    `;
+  } else {
+    detailEl.innerHTML = `
+      <div class="detail-active">
+        <span class="detail-date">${monthName} ${day}</span>
+        <span class="detail-amount no-spend">No expenses logged</span>
+      </div>
+    `;
+  }
+};
+
 function renderAnalysis(dailyTotals, totalSpent, avgDaily, maxDaily, maxDay, weekendSpent, weekdaySpent, currency) {
   const container = document.getElementById('analysis-content');
   
-  const barsHtml = dailyTotals.map((amt, idx) => {
-    const heightPct = maxDaily > 0 ? (amt / maxDaily * 100).toFixed(1) : 0;
-    const day = idx + 1;
-    return `
-      <div class="analysis-bar-wrapper">
-        <div class="analysis-bar-track">
-          <div class="analysis-bar-fill" style="height: 0%" data-height="${heightPct}%">
-            ${amt > 0 && heightPct > 20 ? `<span class="analysis-bar-val">${Math.round(amt)}</span>` : ''}
-          </div>
-        </div>
-        <span class="analysis-bar-label">${day}</span>
+  // Calculate first day index of current month
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const firstDayIdx = new Date(currentYear, currentMonth, 1).getDay(); // 0 = Sunday, 1 = Monday...
+
+  let calendarCellsHtml = '';
+
+  // Weekdays headers
+  const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const weekdaysHtml = weekdays.map(day => `<div class="calendar-weekday">${day}</div>`).join('');
+
+  // Add empty spaces for days before the 1st of the month
+  for (let i = 0; i < firstDayIdx; i++) {
+    calendarCellsHtml += `<div class="calendar-cell empty"></div>`;
+  }
+
+  // Add days
+  for (let day = 1; day <= dailyTotals.length; day++) {
+    const amt = dailyTotals[day - 1];
+    const ratio = maxDaily > 0 ? (amt / maxDaily) : 0;
+    
+    let cellStyle = '';
+    if (amt > 0) {
+      const opacity = 0.15 + (ratio * 0.85); // between 0.15 and 1.0
+      cellStyle = `background: rgba(91, 197, 167, ${opacity.toFixed(2)}); border-color: rgba(91, 197, 167, ${(opacity + 0.1).toFixed(2)}); color: #fff; font-weight: 600;`;
+      if (ratio > 0.75) {
+        cellStyle += `box-shadow: 0 0 8px rgba(91, 197, 167, 0.4);`;
+      }
+    }
+
+    calendarCellsHtml += `
+      <div class="calendar-cell ${amt > 0 ? 'has-spend' : ''}" 
+           style="${cellStyle}" 
+           data-day="${day}" 
+           data-amount="${amt}"
+           onclick="selectCalendarDay(this, ${day}, ${amt}, '${currency}')">
+        <span class="cell-day-num">${day}</span>
       </div>
     `;
-  }).join('');
+  }
 
   const weekendPct = totalSpent > 0 ? Math.round((weekendSpent / totalSpent) * 100) : 0;
+  const currentMonthName = MONTH_NAMES[currentMonth];
 
   container.innerHTML = `
     <div class="report-card glass hero-analysis">
       <div class="analysis-hero-main">
-        <span class="analysis-hero-label">Total Spent (${MONTH_NAMES[new Date().getMonth()]})</span>
-        <span class="analysis-hero-amount">${currency} ${totalSpent.toLocaleString()}</span>
+        <span class="analysis-hero-label">Total Spent (${currentMonthName})</span>
+        <span class="analysis-hero-amount">${currency} ${totalSpent.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
       </div>
       <div class="analysis-hero-grid">
         <div class="analysis-stat">
           <span class="stat-label">Daily Average</span>
-          <span class="stat-value">${currency} ${Math.round(avgDaily)}</span>
+          <span class="stat-value">${currency} ${Math.round(avgDaily).toLocaleString()}</span>
         </div>
         <div class="analysis-stat">
           <span class="stat-label">Peak Spending</span>
-          <span class="stat-value">${currency} ${Math.round(maxDaily)}</span>
+          <span class="stat-value">${currency} ${Math.round(maxDaily).toLocaleString()}</span>
         </div>
       </div>
     </div>
 
-    <div class="report-card glass" style="margin-top: 20px;">
-      <h4 class="card-title-sm">Daily Distribution</h4>
-      <div class="analysis-chart-scroll">
-        <div class="analysis-bars-container">
-          ${barsHtml}
+    <div class="report-card glass" style="margin-top: 20px; padding: 20px;">
+      <div class="calendar-header-wrapper" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h4 class="card-title-sm" style="margin-bottom: 0;">Daily Heatmap</h4>
+        <span class="calendar-month-year" style="font-size: 13px; font-weight: 600; color: var(--green); text-transform: uppercase; letter-spacing: 0.5px;">${currentMonthName} ${currentYear}</span>
+      </div>
+      
+      <div class="calendar-container" style="background: rgba(255, 255, 255, 0.01); border-radius: 12px; padding: 12px; border: 1px solid var(--border);">
+        <div class="calendar-weekdays-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; margin-bottom: 8px;">
+          ${weekdaysHtml}
         </div>
+        <div class="calendar-days-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;">
+          ${calendarCellsHtml}
+        </div>
+      </div>
+
+      <div class="calendar-detail-card" id="calendar-detail" style="margin-top: 16px; padding: 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); text-align: center; min-height: 48px; display: flex; align-items: center; justify-content: center;">
+        <span class="detail-placeholder" style="font-size: 13px; color: var(--text-dim);">Tap any day to see details</span>
       </div>
     </div>
 
@@ -1268,19 +1335,10 @@ function renderAnalysis(dailyTotals, totalSpent, avgDaily, maxDaily, maxDay, wee
       <div class="report-card glass stat-card">
         <span class="stat-label">Most Expensive</span>
         <span class="stat-value">Day ${maxDay}</span>
-        <span class="stat-hint">${currency} ${Math.round(maxDaily)} spent</span>
+        <span class="stat-hint">${currency} ${Math.round(maxDaily).toLocaleString()} spent</span>
       </div>
     </div>
   `;
-
-  // Animate bars
-  requestAnimationFrame(() => {
-    setTimeout(() => {
-      container.querySelectorAll('.analysis-bar-fill').forEach(bar => {
-        bar.style.height = bar.dataset.height;
-      });
-    }, 50);
-  });
 }
 
 async function fetchTrendsData(targetId = 'trends-chart') {
