@@ -349,6 +349,9 @@ function toggleFriend(id) {
   if (state.splitType !== 'equal') {
     renderCustomSplit();
   }
+
+  // Update split summary text
+  updateSplitSummary();
 }
 
 // ─── Group Change ─────────────────────────
@@ -389,6 +392,9 @@ function onGroupChange() {
   if (state.splitType !== 'equal') {
     renderCustomSplit();
   }
+
+  // Update split summary text
+  updateSplitSummary();
 }
 
 // ─── Split Type ───────────────────────────
@@ -405,6 +411,9 @@ function setSplitType(type) {
     renderCustomSplit();
     document.getElementById('custom-split').classList.remove('hidden');
   }
+
+  // Update split summary text
+  updateSplitSummary();
 }
 
 function renderCustomSplit() {
@@ -509,9 +518,10 @@ function updateSplitSummary() {
   const amount = parseFloat(document.getElementById('amount').value) || 0;
   const currency = document.getElementById('currency').value;
   const splitType = state.splitType;
-  const paidBySelf = document.getElementById('paid-by').value === 'self';
+  const paidBy = parseInt(document.getElementById('paid-by').value, 10);
+  const paidBySelf = paidBy === state.currentUser?.id;
   const selectedFriends = Array.from(document.querySelectorAll('.friend-item.selected'));
-  const splitWithCount = selectedFriends.length + 1; // Including self
+  const splitWithCount = selectedFriends.length;
   
   const hintEl = document.getElementById('split-hint');
   if (!hintEl) return;
@@ -523,15 +533,34 @@ function updateSplitSummary() {
     return;
   }
 
+  if (splitWithCount === 0) {
+    hintEl.textContent = 'Select at least one person to split with';
+    return;
+  }
+
   if (splitType === 'equal') {
     const share = (amount / splitWithCount).toFixed(2);
+    const isSelfInSplit = state.selectedFriends.has(state.currentUser?.id);
+
     if (paidBySelf) {
-      hintEl.textContent = `You pay ${symbol}${amount}, others owe you ${symbol}${share} each`;
+      if (isSelfInSplit) {
+        if (splitWithCount === 1) {
+          hintEl.textContent = `You pay ${symbol}${amount.toFixed(2)} and owe it all yourself`;
+        } else {
+          hintEl.textContent = `You pay ${symbol}${amount.toFixed(2)}, others owe you ${symbol}${share} each`;
+        }
+      } else {
+        hintEl.textContent = `You pay ${symbol}${amount.toFixed(2)}, others owe you ${symbol}${share} each`;
+      }
     } else {
-      hintEl.textContent = `Friend pays, you owe ${symbol}${share}`;
+      if (isSelfInSplit) {
+        hintEl.textContent = `Friend pays, you owe ${symbol}${share}`;
+      } else {
+        hintEl.textContent = `Friend pays, you owe ${symbol}0.00`;
+      }
     }
   } else {
-    hintEl.textContent = `Custom split with ${selectedFriends.length} friends`;
+    hintEl.textContent = `Custom split with ${splitWithCount} friends`;
   }
 }
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = "split-now-v44";
+const CACHE_NAME = "split-now-v45";
 const ASSETS = [
   "./",
   "index.html",
