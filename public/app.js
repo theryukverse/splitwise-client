@@ -1306,7 +1306,7 @@ function renderAnalysis(dailyTotals, totalSpent, avgDaily, maxDaily, maxDay, wee
 
     <div class="report-card glass" style="margin-top: 20px; padding: 20px;">
       <div class="calendar-header-wrapper" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h4 class="card-title-sm" style="margin-bottom: 0;">Daily Heatmap</h4>
+        <h4 class="card-title-sm" style="margin-bottom: 0;">Current Month Heatmap</h4>
         <span class="calendar-month-year" style="font-size: 13px; font-weight: 600; color: var(--green); text-transform: uppercase; letter-spacing: 0.5px;">${currentMonthName} ${currentYear}</span>
       </div>
       
