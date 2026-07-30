@@ -20,6 +20,7 @@
   --radius-sm: 10px;
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
@@ -1160,7 +1161,7 @@ input::-webkit-inner-spin-button {
 /* ─── Auth / Setup Styles ─── */
 
 .auth-hero {
-  padding: 60px 20px 40px;
+  padding: calc(50px + var(--safe-top)) 20px 40px;
   text-align: center;
   background: linear-gradient(180deg, rgba(91, 197, 167, 0.12) 0%, transparent 100%);
 }
@@ -1812,7 +1813,7 @@ input::-webkit-inner-spin-button {
 @media (max-width: 380px) {
   .setup-container { padding: 24px 16px; }
   .card { padding: 24px 18px; }
-  .main-content { padding: 16px; }
+  .main-content { padding-left: 16px; padding-right: 16px; }
   .logo-section h1 { font-size: 24px; }
   .report-total-amount { font-size: 26px; }
 }
