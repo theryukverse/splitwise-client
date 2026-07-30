@@ -172,6 +172,7 @@ async function connect() {
       });
       amtInput.addEventListener('input', updateSplitSummary);
       document.getElementById('paid-by').addEventListener('change', updateSplitSummary);
+      document.getElementById('custom-split')?.addEventListener('input', updateSplitSummary);
     }
 
     // Switch screen
@@ -428,6 +429,7 @@ function renderCustomSplit() {
   if (state.splitType === 'percent') {
     suffix = '%';
     placeholder = '0';
+    min = '0';
   } else if (state.splitType === 'shares') {
     suffix = '×';
     placeholder = '1';
@@ -437,17 +439,23 @@ function renderCustomSplit() {
   } else if (state.splitType === 'adjustment') {
     suffix = '±';
     placeholder = '0';
-    labelHint = '<span class="split-hint">Equal split + adjustments</span>';
+    min = '';
+    labelHint = '<span class="split-hint">Equal split + adjustments (e.g. +5 or -5)</span>';
+  } else if (state.splitType === 'exact') {
+    suffix = '';
+    placeholder = '0.00';
+    min = '0';
   }
 
   let html = labelHint ? `<div class="split-label-hint">${labelHint}</div>` : '';
   html += selected.map((f) => {
     const name = `${f.first_name} ${f.last_name || ''}`.trim();
+    const minAttr = min !== '' ? `min="${min}"` : '';
     return `
       <div class="split-row">
         <span class="friend-name">${name}</span>
         <input type="number" class="split-input" data-user-id="${f.id}"
-               placeholder="${placeholder}" step="${step}" min="${min}" inputmode="decimal">
+               placeholder="${placeholder}" step="${step}" ${minAttr} inputmode="decimal">
         <span class="split-suffix">${suffix}</span>
       </div>
     `;
@@ -558,6 +566,18 @@ function updateSplitSummary() {
       } else {
         hintEl.textContent = `Friend pays, you owe ${symbol}0.00`;
       }
+    }
+  } else if (splitType === 'adjustment') {
+    let totalAdj = 0;
+    document.querySelectorAll('.split-input').forEach(input => {
+      totalAdj += parseFloat(input.value || 0);
+    });
+    const baseShare = (amount - totalAdj) / splitWithCount;
+    if (baseShare < 0) {
+      hintEl.textContent = `Adjustments exceed total amount (${symbol}${totalAdj.toFixed(2)})`;
+    } else {
+      const sign = totalAdj >= 0 ? '+' : '';
+      hintEl.textContent = `Base share ${symbol}${baseShare.toFixed(2)} (net adjustments ${symbol}${sign}${totalAdj.toFixed(2)})`;
     }
   } else {
     hintEl.textContent = `Custom split with ${splitWithCount} friends`;
@@ -676,25 +696,28 @@ async function createExpense(event) {
       });
     } else if (state.splitType === 'adjustment') {
       // Equal split + per-person adjustments
-      const baseShare = amount / totalPeopleInSplit;
-      let adjustedShares = {};
+      let totalAdj = 0;
+      const adjMap = {};
 
       peopleInSplit.forEach((uid) => {
         const input = document.querySelector(`.split-input[data-user-id="${uid}"]`);
         const adj = parseFloat(input?.value || 0);
-        adjustedShares[uid] = baseShare + adj;
+        adjMap[uid] = isNaN(adj) ? 0 : adj;
+        totalAdj += adjMap[uid];
       });
 
-      // Normalize so total = amount
+      const baseShare = (amount - totalAdj) / totalPeopleInSplit;
+
       let allocated2 = 0;
       allUserIds.forEach((uid, i) => {
         let owedShare = '0.00';
         if (peopleInSplit.includes(uid)) {
           const splitIdx = peopleInSplit.indexOf(uid);
           if (splitIdx === peopleInSplit.length - 1) {
-            owedShare = (amount - allocated2).toFixed(2);
+            owedShare = Math.max(0, amount - allocated2).toFixed(2);
           } else {
-            owedShare = Math.max(0, adjustedShares[uid]).toFixed(2);
+            const rawShare = Math.max(0, baseShare + adjMap[uid]);
+            owedShare = rawShare.toFixed(2);
             allocated2 += parseFloat(owedShare);
           }
         }
